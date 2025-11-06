@@ -1,0 +1,10 @@
+{
+  "name": "fpl-optimizer",
+  "version": "1.0.0",
+  "description": "Fantasy Premier League Optimizer - Step 1: Core Setup & API Integration",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel"
+  }
+}

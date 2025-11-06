@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPL Optimizer - Step 1</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>FPL Optimizer</h1>
+            <p class="subtitle">Step 1: Core Setup & API Integration</p>
+        </header>
+
+        <div class="controls">
+            <button id="loadDataBtn" class="btn-primary">Load FPL Data</button>
+            <button id="clearCacheBtn" class="btn-secondary">Clear Cache</button>
+            <div class="cache-status">
+                <span id="cacheStatus">Cache: Empty</span>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Players Loaded</div>
+                <div class="stat-value" id="playerCount">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Gameweek</div>
+                <div class="stat-value" id="currentGW">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Fixtures</div>
+                <div class="stat-value" id="fixtureCount">0</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Top Players by Points</h2>
+                <div id="playersList" class="players-list">
+                    <p class="placeholder">Click "Load FPL Data" to fetch player information</p>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Upcoming Fixtures</h2>
+                <div id="fixturesList" class="fixtures-list">
+                    <p class="placeholder">Fixtures will appear here</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Data cached in localStorage • 5min TTL for live data • 1hr TTL for static data</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
