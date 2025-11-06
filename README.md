@@ -1,13 +1,23 @@
-# FPL Optimizer - Step 1: Core Setup & API Integration
+# FPL Optimizer - Step 2: Transfer Optimizer Implementation
 
-A Fantasy Premier League data viewer with API proxy and caching.
+A Fantasy Premier League optimizer with transfer analysis based on Joshua Bull's "remove underperformers" strategy.
 
 ## Features
 
+### Step 1: Core Setup ✅
 - **FPL API Proxy**: Vercel serverless functions handle CORS and proxy FPL API
 - **Smart Caching**: localStorage with TTLs (5min for live, 1hr for static)
 - **Simple Display**: Players shown as text: "Salah (LIV) - £12.5m - 107pts"
 - **GitHub Pages Ready**: Static frontend, serverless backend
+
+### Step 2: Transfer Optimizer ✅
+- **Underperformer Scoring**: Mathematical algorithm to identify players to remove
+- **Smart Replacements**: Suggests best transfers based on expected points
+- **Budget-Aware**: Respects selling price and available funds
+- **Net Gain Calculation**: Shows expected points gain after -4 hit
+- **Form Analysis**: Uses last 4 gameweeks performance
+- **Fixture Difficulty**: Analyzes next 3 fixtures with FDR ratings
+- **Away Game Penalty**: Accounts for home/away split
 
 ## API Endpoints
 
@@ -65,12 +75,42 @@ vercel
 ### GitHub Pages
 The `index.html`, `script.js`, and `style.css` can be served directly from GitHub Pages. For API proxying, deploy the `/api` folder to Vercel and update the `API_BASE` in `script.js`.
 
+## Transfer Analysis Algorithm
+
+Based on Joshua Bull's mathematical framework:
+
+```javascript
+// Removal Priority Score
+score = (form × -0.4) + (fixture_difficulty × -0.3) +
+        (availability_risk × -0.2) + (away_ratio × -0.1)
+```
+
+**Higher score = Higher priority for removal**
+
+### Scoring Components:
+- **Form** (-40% weight): Recent performance (last 4 GW average)
+- **Fixtures** (-30% weight): Difficulty of next 3 fixtures (1=easy, 5=hard)
+- **Availability** (-20% weight): Injury/suspension risk
+- **Away Games** (-10% weight): Proportion of away fixtures
+
+### Expected Points Calculation:
+```javascript
+xP = form × difficulty_multiplier × away_penalty × num_gameweeks
+```
+
 ## Usage
 
 1. Click "Load FPL Data" to fetch and display data
-2. Data is cached automatically (check footer for TTL info)
-3. Click "Refresh Data" to force fetch
-4. Click "Clear Cache" to remove cached data
+2. View top 50 players sorted by total points
+3. Check upcoming fixtures with difficulty ratings
+4. **NEW:** Review transfer suggestions with:
+   - Top 3 underperformers in your team
+   - Best 3 replacements for each position
+   - Expected points for next 3 gameweeks
+   - Net gain/loss after -4 hit
+5. Data is cached automatically (check footer for TTL info)
+6. Click "Refresh Data" to force fetch
+7. Click "Clear Cache" to remove cached data
 
 ## Tech Stack
 
@@ -79,13 +119,24 @@ The `index.html`, `script.js`, and `style.css` can be served directly from GitHu
 - **Caching**: localStorage with TTL
 - **API**: Fantasy Premier League official API
 
-## Next Steps (Step 2+)
+## Mock Team
 
-- Team optimization algorithm
-- Points projection
-- Transfer suggestions
-- Budget management
-- Formation builder
+For testing, the app uses a mock 15-player team. To use your own team:
+
+1. Get your team's player IDs from FPL API
+2. Update `MOCK_TEAM.players` array in `script.js`
+3. Set `MOCK_TEAM.bank` to your available budget
+
+## Next Steps (Step 3+)
+
+- ✅ ~~Core API setup and caching~~
+- ✅ ~~Transfer optimizer with underperformer removal~~
+- 🔲 Team constraint validation (3 players per team max)
+- 🔲 Formation optimizer (valid starting XI)
+- 🔲 Captain selection algorithm
+- 🔲 Wildcard team builder
+- 🔲 Points projection with statistical models
+- 🔲 Historical performance analysis
 
 ## License
 

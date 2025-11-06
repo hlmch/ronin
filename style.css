@@ -181,3 +181,151 @@ footer {
     border-radius: 4px;
     margin: 10px 0;
 }
+
+/* ============================================================================
+   TRANSFER OPTIMIZER STYLES
+   ============================================================================ */
+
+.transfer-section {
+    background: #f0f7ff;
+    padding: 25px;
+    border-radius: 8px;
+    border: 2px solid #38003c;
+}
+
+.transfer-analysis {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+}
+
+.transfer-results {
+    background: white;
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.transfer-header {
+    background: linear-gradient(135deg, #38003c 0%, #00ff87 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.transfer-header h3 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+}
+
+.transfer-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.transfer-suggestion {
+    padding: 20px;
+    border-bottom: 2px solid #e0e0e0;
+    background: #f8f9fa;
+}
+
+.transfer-suggestion:last-child {
+    border-bottom: none;
+}
+
+.transfer-out {
+    background: #fff5f5;
+    border-left: 4px solid #e53e3e;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.transfer-in {
+    background: #f0fff4;
+    border-left: 4px solid #38a169;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.transfer-label {
+    font-weight: bold;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.transfer-out .transfer-label {
+    color: #c53030;
+}
+
+.transfer-in .transfer-label {
+    color: #2f855a;
+}
+
+.player-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.player-stats {
+    font-size: 0.85rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+.expected-points {
+    font-size: 0.85rem;
+    color: #38003c;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.replacement-option {
+    padding: 10px;
+    margin: 8px 0;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s;
+}
+
+.replacement-option:hover {
+    background: #f7fafc;
+    border-color: #38003c;
+    transform: translateX(5px);
+}
+
+.replacement-option.best {
+    border: 2px solid #00ff87;
+    background: #f0fff4;
+    font-weight: bold;
+}
+
+.option-number {
+    display: inline-block;
+    width: 20px;
+    color: #666;
+    font-weight: bold;
+}
+
+.net-gain {
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.net-gain.positive {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.net-gain.negative {
+    background: #fed7d7;
+    color: #742a2a;
+}
