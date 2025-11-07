@@ -811,18 +811,19 @@ function analyzeCaptainOptions() {
         // Determine badges
         let badges = '';
         if (index === 0) {
-            badges += '<span class="captain-rec-badge">⭐ Recommended</span>';
+            badges += '<span class="captain-rec-badge">⭐ Best</span>';
         }
         if (isCurrentCaptain) {
-            badges += '<span class="captain-current-badge">👑 Current Captain</span>';
+            badges += '<span class="captain-current-badge">👑 Current</span>';
         }
         if (ownership < 15) {
-            badges += '<span class="captain-diff-badge">💎 Differential</span>';
+            badges += '<span class="captain-diff-badge">💎 Diff</span>';
         } else if (ownership > 50) {
             badges += '<span class="captain-template-badge">📋 Template</span>';
         }
 
-        const captainPoints = (form * 2).toFixed(1); // Simplified captain points estimate
+        // FIX: Use player.form instead of undefined 'form' variable
+        const captainPoints = (player.form * 2).toFixed(1);
 
         html += `
             <div class="captain-option ${index === 0 ? 'recommended' : ''}">
@@ -836,7 +837,7 @@ function analyzeCaptainOptions() {
                     </div>
                     <div class="captain-points">
                         <div class="captain-score">${captainPoints}</div>
-                        <div class="captain-score-label">Capt Pts (Est)</div>
+                        <div class="captain-score-label">xP × 2</div>
                     </div>
                 </div>
 
@@ -848,16 +849,16 @@ function analyzeCaptainOptions() {
                         <span class="stat-value">${player.form}</span>
                     </div>
                     <div class="captain-stat-item">
-                        <span class="stat-label">Ownership</span>
+                        <span class="stat-label">Own</span>
                         <span class="stat-value">${ownership.toFixed(1)}%</span>
                     </div>
                     <div class="captain-stat-item">
                         <span class="stat-label">xGI</span>
-                        <span class="stat-value">${player.xGI.toFixed(2)}</span>
+                        <span class="stat-value">${player.xGI.toFixed(1)}</span>
                     </div>
                     <div class="captain-stat-item">
-                        <span class="stat-label">Fixture</span>
-                        <span class="stat-value">${fixtureHtml}</span>
+                        <span class="stat-label">Next</span>
+                        <span class="stat-value">${fixtureHtml || 'N/A'}</span>
                     </div>
                 </div>
             </div>
