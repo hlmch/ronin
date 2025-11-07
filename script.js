@@ -531,6 +531,12 @@ function analyzeTransfers() {
         return { ...player, pick };
     }).filter(p => p);
 
+    // Count players per team
+    const teamCounts = {};
+    myPlayers.forEach(player => {
+        teamCounts[player.team] = (teamCounts[player.team] || 0) + 1;
+    });
+
     // Calculate removal score for each player
     const scoredPlayers = myPlayers.map(player => {
         const form = parseFloat(player.form) || 0;
@@ -591,6 +597,20 @@ function analyzeTransfers() {
 
             // Must be available
             if (p.chance_of_playing_next_round !== null && p.chance_of_playing_next_round < 75) return false;
+
+            // FPL RULE: Max 3 players per team
+            // If we're replacing a player from team X, we can bring in another from team X
+            // Otherwise, check if we already have 3 from that team
+            const currentTeamCount = teamCounts[p.team] || 0;
+            if (p.team === playerOut.team) {
+                // Replacing from same team is always OK (just swapping)
+                return true;
+            } else {
+                // Different team - check if we already have 3
+                if (currentTeamCount >= 3) {
+                    return false;
+                }
+            }
 
             return true;
         });
@@ -655,6 +675,7 @@ function analyzeTransfers() {
                                 <span>£${(playerOut.now_cost / 10).toFixed(1)}</span>
                                 <span>${playerOut.form} form</span>
                                 <span>${playerOut.total_points} pts</span>
+                                <span>${playerOut.selected_by_percent}% owned</span>
                             </div>
                             <div class="transfer-reason">
                                 ${playerOut.form < 2 ? '❌ Poor form' : ''}
@@ -685,6 +706,7 @@ function analyzeTransfers() {
                                         <span>£${(playerIn.now_cost / 10).toFixed(1)}</span>
                                         <span>${playerIn.form} form</span>
                                         <span>${playerIn.total_points} pts</span>
+                                        <span>${playerIn.selected_by_percent}% owned</span>
                                     </div>
                                     <div class="transfer-reason positive">
                                         ${playerIn.form > 5 ? '✅ Hot form' : ''}
@@ -707,9 +729,144 @@ function analyzeTransfers() {
 }
 
 function analyzeCaptainOptions() {
-    // TODO: Implement proper captain analysis based on real team
     const container = document.getElementById('captainAnalysis');
-    container.innerHTML = '<p class="info-message">Captain analysis coming soon - analyzing your actual team!</p>';
+    const picks = APP_STATE.teamPicks.picks;
+
+    // Only consider starting XI (positions 1-11)
+    const startingXI = picks.filter(p => p.position <= 11);
+
+    // Get player data for starting XI
+    const captainCandidates = startingXI.map(pick => {
+        const player = APP_STATE.playerData.find(p => p.id === pick.element);
+        if (!player) return null;
+
+        const form = parseFloat(player.form) || 0;
+        const fixtures = getUpcomingFixtures(player, 1);
+        const nextFixture = fixtures[0];
+        const fixtureDifficulty = nextFixture ? nextFixture.difficulty : 3;
+
+        // Basic captain score
+        const fixtureBonus = (5 - fixtureDifficulty) * 2; // Easier fixtures get higher bonus
+        const formScore = form * 2;
+        const ownershipScore = parseFloat(player.selected_by_percent) || 0;
+
+        // Strategy-based scoring
+        const strategy = APP_STATE.currentCaptainStrategy;
+        let captainScore = 0;
+
+        if (strategy === 'SAFE') {
+            // Template captain: High ownership + good form
+            captainScore = formScore * 0.4 + fixtureBonus * 0.3 + (ownershipScore / 10) * 0.3;
+        } else if (strategy === 'BALANCED') {
+            // Balance between template and differential
+            captainScore = formScore * 0.35 + fixtureBonus * 0.35 + (50 - Math.abs(50 - ownershipScore)) / 20;
+        } else if (strategy === 'AGGRESSIVE') {
+            // Differential captain: Lower ownership but good underlying stats
+            captainScore = formScore * 0.3 + fixtureBonus * 0.4 + ((100 - ownershipScore) / 10) * 0.3;
+        }
+
+        // Bonus for attacking returns
+        const xGI = (parseFloat(player.expected_goals || 0) + parseFloat(player.expected_assists || 0));
+        captainScore += xGI * 0.5;
+
+        return {
+            ...player,
+            pick,
+            form,
+            nextFixture,
+            fixtureDifficulty,
+            captainScore,
+            xGI
+        };
+    }).filter(p => p);
+
+    // Sort by captain score
+    captainCandidates.sort((a, b) => b.captainScore - a.captainScore);
+
+    // Top 5 options
+    const topCaptains = captainCandidates.slice(0, 5);
+
+    // Render HTML
+    let html = `
+        <div class="captain-results">
+            <div class="captain-header">
+                <h4>Top Captain Picks</h4>
+                <p class="captain-subtitle">Strategy: ${APP_STATE.currentCaptainStrategy}</p>
+            </div>
+            <div class="captain-list">
+    `;
+
+    topCaptains.forEach((player, index) => {
+        const positionMap = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+        const isCurrentCaptain = player.pick.is_captain;
+        const ownership = parseFloat(player.selected_by_percent);
+
+        let fixtureHtml = '';
+        if (player.nextFixture) {
+            const bgColor = getDifficultyColor(player.nextFixture.difficulty);
+            const prefix = player.nextFixture.isHome ? 'vs ' : '@ ';
+            fixtureHtml = `<span class="fixture-badge" style="background: ${bgColor};">${prefix}${player.nextFixture.opponent}</span>`;
+        }
+
+        // Determine badges
+        let badges = '';
+        if (index === 0) {
+            badges += '<span class="captain-rec-badge">⭐ Recommended</span>';
+        }
+        if (isCurrentCaptain) {
+            badges += '<span class="captain-current-badge">👑 Current Captain</span>';
+        }
+        if (ownership < 15) {
+            badges += '<span class="captain-diff-badge">💎 Differential</span>';
+        } else if (ownership > 50) {
+            badges += '<span class="captain-template-badge">📋 Template</span>';
+        }
+
+        const captainPoints = (form * 2).toFixed(1); // Simplified captain points estimate
+
+        html += `
+            <div class="captain-option ${index === 0 ? 'recommended' : ''}">
+                <div class="captain-main">
+                    <div class="captain-player-info">
+                        <span class="captain-rank">${index + 1}</span>
+                        <div>
+                            <div class="captain-name">${player.web_name}</div>
+                            <div class="captain-team-pos">${player.team_name} • ${positionMap[player.element_type]}</div>
+                        </div>
+                    </div>
+                    <div class="captain-points">
+                        <div class="captain-score">${captainPoints}</div>
+                        <div class="captain-score-label">Capt Pts (Est)</div>
+                    </div>
+                </div>
+
+                ${badges ? `<div class="captain-badges">${badges}</div>` : ''}
+
+                <div class="captain-stats-row">
+                    <div class="captain-stat-item">
+                        <span class="stat-label">Form</span>
+                        <span class="stat-value">${player.form}</span>
+                    </div>
+                    <div class="captain-stat-item">
+                        <span class="stat-label">Ownership</span>
+                        <span class="stat-value">${ownership.toFixed(1)}%</span>
+                    </div>
+                    <div class="captain-stat-item">
+                        <span class="stat-label">xGI</span>
+                        <span class="stat-value">${player.xGI.toFixed(2)}</span>
+                    </div>
+                    <div class="captain-stat-item">
+                        <span class="stat-label">Fixture</span>
+                        <span class="stat-value">${fixtureHtml}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div></div>';
+
+    container.innerHTML = html;
 }
 
 // ============================================================================
