@@ -784,7 +784,7 @@ function analyzeCaptainOptions() {
     captainCandidates.sort((a, b) => b.captainScore - a.captainScore);
 
     // Top 5 options
-    const topCaptains = captainCandidates.slice(0, 5);
+    const topCaptains = captainCandidates.slice(0, 3);
 
     // Render HTML
     let html = `

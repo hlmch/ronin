@@ -686,35 +686,549 @@ input::placeholder {
     margin-top: 20px;
 }
 
+/* Additional Styles for Team Analysis Page */
+.my-team-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.team-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.team-info-card {
+    background: linear-gradient(135deg, rgba(0, 245, 255, 0.08), rgba(139, 0, 255, 0.08));
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+
+.team-info-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.team-info-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--secondary);
+    text-shadow: 0 0 4px var(--secondary);
+}
+
+.action-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.strategy-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.strategy-label {
+    font-size: 0.85rem;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.captain-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.captain-player-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.captain-rank {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.captain-team-pos {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+.captain-points {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.captain-score-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}
+
+.captain-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.captain-badges span {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+}
+
+.captain-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-glow);
+}
+
+.captain-stat-item {
+    text-align: center;
+}
+
+.pitch-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.pitch-player-stats {
+    font-size: 0.7rem;
+    margin-top: 3px;
+}
+
+.team-bench {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid rgba(0, 245, 255, 0.2);
+}
+
+.bench-title {
+    text-align: center;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.bench-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 8px;
+}
+
+.bench-player {
+    background: linear-gradient(135deg, rgba(0, 245, 255, 0.08), rgba(139, 0, 255, 0.08));
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.75rem;
+}
+
+.bench-player-name {
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 3px;
+}
+
+.transfer-comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.transfer-arrow {
+    font-size: 1.5rem;
+    color: var(--secondary);
+    text-align: center;
+}
+
+.transfer-player-details {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.transfer-player-details div {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
 /* Responsive - Mobile Optimized */
 @media (max-width: 768px) {
+    body {
+        font-size: 13px;
+    }
+
+    .app-container {
+        padding: 0 8px;
+    }
+
+    .app-header {
+        padding: 12px 0;
+        margin-bottom: 10px;
+    }
+
     .app-header h1 {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+    }
+
+    .app-subtitle {
+        font-size: 0.65rem;
+        letter-spacing: 1.5px;
+    }
+
+    .app-nav {
+        padding: 6px;
+        gap: 4px;
+        margin-bottom: 10px;
     }
 
     .nav-btn {
-        min-width: 85px;
-        font-size: 0.7rem;
-        padding: 6px 10px;
+        min-width: 75px;
+        font-size: 0.65rem;
+        padding: 7px 8px;
+        letter-spacing: 0.3px;
+    }
+
+    .page-header {
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .page-header h2 {
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 8px 14px;
+        font-size: 0.75rem;
+        width: 100%;
+    }
+
+    .section,
+    .my-team-content,
+    .team-input-section {
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .section h3 {
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+        letter-spacing: 1px;
     }
 
     .team-pitch {
         min-height: 280px;
-        padding: 12px 8px;
+        padding: 12px 6px;
+        gap: 8px;
+    }
+
+    .pitch-row {
+        gap: 5px;
     }
 
     .pitch-player {
-        min-width: 70px;
-        max-width: 90px;
-        padding: 6px;
+        min-width: 65px;
+        max-width: 85px;
+        padding: 6px 4px;
+    }
+
+    .pitch-player-name {
+        font-size: 0.7rem;
+    }
+
+    .pitch-player-stats {
+        font-size: 0.65rem;
+    }
+
+    .formation-badge {
+        font-size: 0.8rem;
+        padding: 5px 12px;
+        letter-spacing: 1px;
+    }
+
+    .team-info-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    .team-info-card {
+        padding: 10px 8px;
+    }
+
+    .team-info-label {
+        font-size: 0.65rem;
+    }
+
+    .team-info-value {
+        font-size: 1rem;
+    }
+
+    .action-cards {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .action-card {
+        padding: 14px;
+    }
+
+    .action-icon {
+        font-size: 2rem;
+        margin-bottom: 8px;
+    }
+
+    .action-card h3 {
+        font-size: 0.9rem;
+    }
+
+    .action-card p {
+        font-size: 0.75rem;
+    }
+
+    .transfer-comparison {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .transfer-arrow {
+        transform: rotate(90deg);
+        font-size: 1.2rem;
+    }
+
+    .transfer-player-card {
+        padding: 10px;
+    }
+
+    .transfer-player-name {
+        font-size: 0.85rem;
+    }
+
+    .transfer-player-details {
+        font-size: 0.75rem;
+    }
+
+    .captain-option {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .captain-main {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .captain-rank {
+        width: 28px;
+        height: 28px;
+        font-size: 0.85rem;
+    }
+
+    .captain-name {
+        font-size: 0.85rem;
+    }
+
+    .captain-team-pos {
+        font-size: 0.7rem;
     }
 
     .captain-score {
         font-size: 1.2rem;
     }
 
-    .page-header h2 {
-        font-size: 0.95rem;
+    .captain-score-label {
+        font-size: 0.65rem;
+    }
+
+    .captain-badges span {
+        font-size: 0.65rem;
+        padding: 2px 6px;
+    }
+
+    .captain-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .stat-label {
+        font-size: 0.7rem;
+    }
+
+    .stat-value {
+        font-size: 0.8rem;
+    }
+
+    .strategy-selector {
+        gap: 6px;
+    }
+
+    .strategy-label {
+        font-size: 0.75rem;
+        width: 100%;
+        margin-bottom: 4px;
+    }
+
+    .strategy-btn {
+        flex: 1;
+        padding: 7px 10px;
+        font-size: 0.7rem;
+    }
+
+    .filters {
+        gap: 6px;
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+
+    .filters input,
+    .filters select {
+        font-size: 0.75rem;
+        padding: 7px 10px;
+    }
+
+    .checkbox-label {
+        font-size: 0.75rem;
+    }
+
+    .table-container {
+        padding: 10px;
+    }
+
+    .player-table {
+        font-size: 0.75rem;
+    }
+
+    .player-table th {
+        padding: 8px 6px;
+        font-size: 0.7rem;
+        letter-spacing: 0.3px;
+    }
+
+    .player-table td {
+        padding: 7px 6px;
+    }
+
+    .fixture-badge {
+        font-size: 0.65rem;
+        padding: 2px 5px;
+    }
+
+    .bench-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .bench-player {
+        padding: 6px;
+        font-size: 0.7rem;
+    }
+
+    .team-bench {
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+
+    .bench-title {
+        font-size: 0.8rem;
+        margin-bottom: 8px;
+    }
+
+    .info-card {
+        padding: 12px;
+    }
+
+    .info-card h3 {
+        font-size: 1rem;
+    }
+
+    .placeholder {
+        padding: 20px;
+        font-size: 0.85rem;
+    }
+
+    .app-footer {
+        padding: 12px;
+        font-size: 0.7rem;
+        margin-top: 15px;
+    }
+
+    /* Hide certain columns on mobile for player table */
+    .player-table th:nth-child(n+6),
+    .player-table td:nth-child(n+6) {
+        display: none;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+    .app-header h1 {
+        font-size: 1rem;
+        letter-spacing: 1.5px;
+    }
+
+    .nav-btn {
+        min-width: 70px;
+        font-size: 0.6rem;
+        padding: 6px 6px;
+    }
+
+    .pitch-player {
+        min-width: 60px;
+        max-width: 75px;
+        padding: 5px 3px;
+    }
+
+    .pitch-player-name {
+        font-size: 0.65rem;
+    }
+
+    .team-info-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .captain-stats-row {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -795,4 +1309,79 @@ input::placeholder {
     color: var(--text);
     font-weight: 600;
     font-size: 0.8rem;
+}
+
+/* Input Groups */
+.input-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.input-group input {
+    flex: 1;
+    min-width: 200px;
+}
+
+.input-group button {
+    flex-shrink: 0;
+}
+
+.team-input-section {
+    text-align: center;
+}
+
+.team-input-section h2 {
+    color: var(--secondary);
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+    text-shadow: 0 0 6px var(--secondary);
+}
+
+.team-input-section p {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-bottom: 15px;
+    line-height: 1.5;
+}
+
+.help-text {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(0, 245, 255, 0.05);
+    border-radius: 8px;
+    font-size: 0.8rem;
+}
+
+.help-example {
+    margin-top: 8px;
+    font-family: 'Courier New', monospace;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Focus visible for accessibility */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--secondary);
+    outline-offset: 2px;
+}
+
+/* Disabled states */
+button:disabled,
+input:disabled,
+select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
