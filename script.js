@@ -415,36 +415,105 @@ function displayMyTeam() {
     const container = document.getElementById('myTeamContent');
     const picks = APP_STATE.teamPicks.picks;
 
-    let html = '<div class="my-team-display">';
-    html += '<h3>Current Squad (GW' + APP_STATE.currentGW + ')</h3>';
-    html += '<div class="team-grid">';
+    // Get starting XI and bench
+    const startingXI = picks.filter(p => p.position <= 11).sort((a, b) => a.position - b.position);
+    const bench = picks.filter(p => p.position > 11).sort((a, b) => a.position - b.position);
 
-    picks.forEach(pick => {
+    // Group starting XI by position
+    const byPosition = {
+        GK: [],
+        DEF: [],
+        MID: [],
+        FWD: []
+    };
+
+    startingXI.forEach(pick => {
         const player = APP_STATE.playerData.find(p => p.id === pick.element);
         if (!player) return;
 
         const positionMap = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
-        const isCaptain = pick.is_captain;
-        const isViceCaptain = pick.is_vice_captain;
+        const pos = positionMap[player.element_type];
+
+        byPosition[pos].push({
+            ...player,
+            pick
+        });
+    });
+
+    // Detect formation
+    const formation = `${byPosition.DEF.length}-${byPosition.MID.length}-${byPosition.FWD.length}`;
+
+    let html = `
+        <div class="my-team-display">
+            <div class="team-header">
+                <h3>Current Squad - GW${APP_STATE.currentGW}</h3>
+                <span class="formation-badge">${formation}</span>
+            </div>
+
+            <div class="team-pitch">
+    `;
+
+    // Render formation on pitch
+    ['FWD', 'MID', 'DEF', 'GK'].forEach(pos => {
+        if (byPosition[pos].length === 0) return;
+
+        html += `<div class="pitch-row pitch-row-${pos.toLowerCase()}">`;
+
+        byPosition[pos].forEach(player => {
+            const isCaptain = player.pick.is_captain;
+            const isViceCaptain = player.pick.is_vice_captain;
+            const fixtures = getUpcomingFixtures(player, 1);
+            const nextFixture = fixtures[0];
+
+            let fixtureHtml = '';
+            if (nextFixture) {
+                const bgColor = getDifficultyColor(nextFixture.difficulty);
+                const prefix = nextFixture.isHome ? 'vs ' : '@ ';
+                fixtureHtml = `<div class="player-fixture" style="background: ${bgColor};">${prefix}${nextFixture.opponent}</div>`;
+            }
+
+            html += `
+                <div class="pitch-player">
+                    ${isCaptain ? '<span class="captain-badge-pitch">C</span>' : ''}
+                    ${isViceCaptain ? '<span class="vice-badge-pitch">VC</span>' : ''}
+                    <div class="pitch-player-name">${player.web_name}</div>
+                    <div class="pitch-player-team">${player.team_name}</div>
+                    <div class="pitch-player-stats">
+                        <span>£${(player.now_cost / 10).toFixed(1)}</span>
+                        <span>${player.form} form</span>
+                    </div>
+                    ${fixtureHtml}
+                </div>
+            `;
+        });
+
+        html += '</div>';
+    });
+
+    html += '</div>'; // Close team-pitch
+
+    // Bench
+    html += '<div class="team-bench"><h4>Bench</h4><div class="bench-players">';
+
+    bench.forEach(pick => {
+        const player = APP_STATE.playerData.find(p => p.id === pick.element);
+        if (!player) return;
+
+        const positionMap = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
 
         html += `
-            <div class="team-player-card">
-                <div class="player-card-header">
-                    ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
-                    ${isViceCaptain ? '<span class="vice-badge">VC</span>' : ''}
-                </div>
-                <div class="player-card-name">${player.web_name}</div>
-                <div class="player-card-team">${player.team_name}</div>
-                <div class="player-card-stats">
-                    <span>${positionMap[player.element_type]}</span>
-                    <span>£${(player.now_cost / 10).toFixed(1)}</span>
-                    <span>${player.total_points}pts</span>
-                </div>
+            <div class="bench-player">
+                <span class="bench-position">${positionMap[player.element_type]}</span>
+                <span class="bench-name">${player.web_name}</span>
+                <span class="bench-team">${player.team_name}</span>
+                <span class="bench-price">£${(player.now_cost / 10).toFixed(1)}</span>
             </div>
         `;
     });
 
-    html += '</div></div>';
+    html += '</div></div>'; // Close bench
+    html += '</div>'; // Close my-team-display
+
     container.innerHTML = html;
 
     // Show sections
@@ -453,9 +522,188 @@ function displayMyTeam() {
 }
 
 function analyzeTransfers() {
-    // TODO: Implement proper transfer analysis based on real team
     const container = document.getElementById('transferAnalysis');
-    container.innerHTML = '<p class="info-message">Transfer analysis coming soon - analyzing your actual team!</p>';
+    const picks = APP_STATE.teamPicks.picks;
+
+    // Get user's players
+    const myPlayers = picks.map(pick => {
+        const player = APP_STATE.playerData.find(p => p.id === pick.element);
+        return { ...player, pick };
+    }).filter(p => p);
+
+    // Calculate removal score for each player
+    const scoredPlayers = myPlayers.map(player => {
+        const form = parseFloat(player.form) || 0;
+        const fixtures = getUpcomingFixtures(player, 3);
+        const avgFixtureDifficulty = fixtures.length > 0
+            ? fixtures.reduce((sum, f) => sum + f.difficulty, 0) / fixtures.length
+            : 3;
+
+        const minutesPlayed = player.minutes || 0;
+        const availability = player.chance_of_playing_next_round === null ? 100 : (player.chance_of_playing_next_round || 0);
+
+        // Points per game (last 4 weeks)
+        const pointsPerGame = minutesPlayed > 0 ? (parseFloat(player.form) * 4) / 4 : 0;
+
+        // Removal score (higher = more likely to remove)
+        // Bad form, hard fixtures, low availability = high removal score
+        const removalScore =
+            (5 - form) * 2 +  // Poor form
+            (avgFixtureDifficulty - 1) * 1.5 + // Hard fixtures
+            (100 - availability) * 0.02 + // Injury risk
+            (minutesPlayed < 180 ? 2 : 0); // Not playing
+
+        return {
+            ...player,
+            removalScore,
+            form,
+            avgFixtureDifficulty,
+            availability,
+            pointsPerGame
+        };
+    });
+
+    // Sort by removal score (highest first = worst players)
+    scoredPlayers.sort((a, b) => b.removalScore - a.removalScore);
+
+    // Top 3 candidates for removal
+    const transferOut = scoredPlayers.slice(0, 3);
+
+    // For each player out, find best replacements
+    const suggestions = transferOut.map(playerOut => {
+        const positionMap = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+        const position = playerOut.element_type;
+
+        // Available budget: player's selling price + bank
+        const sellingPrice = playerOut.now_cost; // Simplified
+        const bank = APP_STATE.teamData.last_deadline_bank || 0;
+        const budget = sellingPrice + bank;
+
+        // Find replacements in same position
+        const replacements = APP_STATE.playerData.filter(p => {
+            if (p.element_type !== position) return false;
+            if (p.now_cost > budget) return false;
+            if (p.id === playerOut.id) return false;
+
+            // Check if already in team
+            const alreadyInTeam = myPlayers.some(mp => mp.id === p.id);
+            if (alreadyInTeam) return false;
+
+            // Must be available
+            if (p.chance_of_playing_next_round !== null && p.chance_of_playing_next_round < 75) return false;
+
+            return true;
+        });
+
+        // Score replacements (higher = better)
+        const scoredReplacements = replacements.map(p => {
+            const form = parseFloat(p.form) || 0;
+            const fixtures = getUpcomingFixtures(p, 3);
+            const avgFixtureDifficulty = fixtures.length > 0
+                ? fixtures.reduce((sum, f) => sum + f.difficulty, 0) / fixtures.length
+                : 3;
+
+            const xGI = (parseFloat(p.expected_goals || 0) + parseFloat(p.expected_assists || 0));
+
+            // Replacement score (higher = better)
+            const replacementScore =
+                form * 3 + // Good form
+                (5 - avgFixtureDifficulty) * 2 + // Easy fixtures
+                xGI * 1.5 + // High xG involvement
+                (p.minutes / 100); // Minutes played
+
+            return {
+                ...p,
+                replacementScore,
+                form,
+                avgFixtureDifficulty,
+                xGI,
+                fixtures
+            };
+        });
+
+        // Sort by replacement score
+        scoredReplacements.sort((a, b) => b.replacementScore - a.replacementScore);
+
+        return {
+            out: playerOut,
+            in: scoredReplacements.slice(0, 3) // Top 3 replacements
+        };
+    });
+
+    // Render HTML
+    let html = '<div class="transfer-suggestions">';
+
+    suggestions.forEach((suggestion, index) => {
+        const playerOut = suggestion.out;
+        const positionMap = { 1: 'GK', 2: 'DEF', 3: 'MID', 4: 'FWD' };
+
+        html += `
+            <div class="transfer-suggestion">
+                <div class="suggestion-header">
+                    <h4>Transfer ${index + 1}</h4>
+                    <span class="position-badge">${positionMap[playerOut.element_type]}</span>
+                </div>
+
+                <div class="transfer-comparison">
+                    <div class="transfer-out">
+                        <div class="transfer-label">OUT</div>
+                        <div class="transfer-player-card out">
+                            <div class="transfer-player-name">${playerOut.web_name}</div>
+                            <div class="transfer-player-team">${playerOut.team_name}</div>
+                            <div class="transfer-player-stats">
+                                <span>£${(playerOut.now_cost / 10).toFixed(1)}</span>
+                                <span>${playerOut.form} form</span>
+                                <span>${playerOut.total_points} pts</span>
+                            </div>
+                            <div class="transfer-reason">
+                                ${playerOut.form < 2 ? '❌ Poor form' : ''}
+                                ${playerOut.avgFixtureDifficulty > 3.5 ? '📅 Hard fixtures' : ''}
+                                ${playerOut.availability < 100 ? '🏥 Injury risk' : ''}
+                                ${playerOut.minutes < 180 ? '⏱️ Limited minutes' : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="transfer-arrow">→</div>
+
+                    <div class="transfer-in">
+                        <div class="transfer-label">IN (Top ${suggestion.in.length})</div>
+                        ${suggestion.in.map((playerIn, idx) => {
+                            const fixturesHtml = playerIn.fixtures.map(f => {
+                                const bgColor = getDifficultyColor(f.difficulty);
+                                const prefix = f.isHome ? '' : '@';
+                                return `<span class="fixture-mini" style="background: ${bgColor};">${prefix}${f.opponent}</span>`;
+                            }).join(' ');
+
+                            return `
+                                <div class="transfer-player-card in ${idx === 0 ? 'recommended' : ''}">
+                                    ${idx === 0 ? '<span class="recommended-badge">⭐ Best</span>' : ''}
+                                    <div class="transfer-player-name">${playerIn.web_name}</div>
+                                    <div class="transfer-player-team">${playerIn.team_name}</div>
+                                    <div class="transfer-player-stats">
+                                        <span>£${(playerIn.now_cost / 10).toFixed(1)}</span>
+                                        <span>${playerIn.form} form</span>
+                                        <span>${playerIn.total_points} pts</span>
+                                    </div>
+                                    <div class="transfer-reason positive">
+                                        ${playerIn.form > 5 ? '✅ Hot form' : ''}
+                                        ${playerIn.avgFixtureDifficulty < 2.5 ? '📅 Easy fixtures' : ''}
+                                        ${playerIn.xGI > 1 ? '⚽ High xGI' : ''}
+                                    </div>
+                                    <div class="transfer-fixtures">${fixturesHtml}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+
+    container.innerHTML = html;
 }
 
 function analyzeCaptainOptions() {
