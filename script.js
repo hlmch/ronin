@@ -297,18 +297,312 @@ function getAwayGameRatio(player, fixtures, numFixtures = 3, currentGW) {
     return awayGames / teamFixtures.length;
 }
 
-// Calculate expected points for next N gameweeks (simplified)
-function calculateExpectedPoints(player, fixtures, numGW = 3, currentGW) {
+// ============================================================================
+// ENHANCED EXPECTED POINTS MODEL - Step 3
+// ============================================================================
+
+// Fixture difficulty multipliers (FDR 1-5)
+const DIFFICULTY_MULTIPLIERS = {
+    1: 1.30,  // Very easy - 30% boost
+    2: 1.15,  // Easy - 15% boost
+    3: 1.00,  // Medium - no change
+    4: 0.85,  // Hard - 15% penalty
+    5: 0.70   // Very hard - 30% penalty
+};
+
+// Adjust a value based on fixture difficulty
+function adjustForFixture(baseValue, difficulty) {
+    return baseValue * (DIFFICULTY_MULTIPLIERS[difficulty] || 1.0);
+}
+
+// Calculate appearance points probability
+function calculateAppearancePoints(player, fixtures, numGW, currentGW, teams) {
+    const teamId = player.team;
+    const chanceOfPlaying = player.chance_of_playing_next_round || 100;
+    const playProbability = chanceOfPlaying / 100;
+
+    // Get fixtures for this player's team
+    const teamFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .slice(0, numGW);
+
+    // Assume 2 points per game if likely to play 60+ minutes
+    const minutesPercent = player.minutes / (player.starts * 90 || 1);
+    const fullGameProbability = minutesPercent > 0.66 ? 0.9 : 0.6;
+
+    const appearancePoints = teamFixtures.length * 2 * playProbability * fullGameProbability;
+
+    return {
+        points: appearancePoints,
+        games: teamFixtures.length,
+        probability: playProbability
+    };
+}
+
+// Calculate expected goals points
+function calculateExpectedGoals(player, fixtures, numGW, currentGW, teams) {
+    const teamId = player.team;
+    const position = player.element_type; // 1=GK, 2=DEF, 3=MID, 4=FWD
+
+    // Points per goal by position
+    const goalPoints = {1: 10, 2: 6, 3: 5, 4: 4};
+    const pointsPerGoal = goalPoints[position] || 4;
+
+    // Use expected goals per 90 minutes
+    const xGPer90 = parseFloat(player.expected_goals_per_90) || 0;
+
+    if (xGPer90 === 0) return {points: 0, xG: 0, breakdown: []};
+
+    // Get fixtures and adjust for difficulty
+    const teamFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .slice(0, numGW);
+
+    let totalGoalPoints = 0;
+    const breakdown = [];
+
+    teamFixtures.forEach(fixture => {
+        const isHome = fixture.team_h === teamId;
+        const difficulty = isHome ? fixture.team_h_difficulty : fixture.team_a_difficulty;
+
+        // Expected goals for this fixture
+        const fixtureXG = xGPer90 * 1.0; // Assume 90 minutes
+        const adjustedXG = adjustForFixture(fixtureXG, difficulty);
+        const fixturePoints = adjustedXG * pointsPerGoal;
+
+        totalGoalPoints += fixturePoints;
+        breakdown.push({fixture, xG: adjustedXG, points: fixturePoints});
+    });
+
+    return {
+        points: totalGoalPoints,
+        xG: totalGoalPoints / pointsPerGoal,
+        breakdown
+    };
+}
+
+// Calculate expected assists points
+function calculateExpectedAssists(player, fixtures, numGW, currentGW, teams) {
+    const teamId = player.team;
+    const xAPer90 = parseFloat(player.expected_assists_per_90) || 0;
+
+    if (xAPer90 === 0) return {points: 0, xA: 0, breakdown: []};
+
+    // All positions get 3 points per assist
+    const pointsPerAssist = 3;
+
+    // Get fixtures and adjust for difficulty
+    const teamFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .slice(0, numGW);
+
+    let totalAssistPoints = 0;
+    const breakdown = [];
+
+    teamFixtures.forEach(fixture => {
+        const isHome = fixture.team_h === teamId;
+        const difficulty = isHome ? fixture.team_h_difficulty : fixture.team_a_difficulty;
+
+        // Expected assists for this fixture
+        const fixtureXA = xAPer90 * 1.0; // Assume 90 minutes
+        const adjustedXA = adjustForFixture(fixtureXA, difficulty);
+        const fixturePoints = adjustedXA * pointsPerAssist;
+
+        totalAssistPoints += fixturePoints;
+        breakdown.push({fixture, xA: adjustedXA, points: fixturePoints});
+    });
+
+    return {
+        points: totalAssistPoints,
+        xA: totalAssistPoints / pointsPerAssist,
+        breakdown
+    };
+}
+
+// Calculate clean sheet probability and points
+function calculateCleanSheetPoints(player, fixtures, numGW, currentGW, teams) {
+    const teamId = player.team;
+    const position = player.element_type; // 1=GK, 2=DEF, 3=MID, 4=FWD
+
+    // Only GK and DEF get clean sheet points
+    const cleanSheetPoints = {1: 4, 2: 4, 3: 1, 4: 0};
+    const pointsPerCS = cleanSheetPoints[position] || 0;
+
+    if (pointsPerCS === 0) return {points: 0, probability: 0, breakdown: []};
+
+    // Get team defensive strength
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return {points: 0, probability: 0, breakdown: []};
+
+    // Get fixtures
+    const teamFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .slice(0, numGW);
+
+    let totalCSPoints = 0;
+    const breakdown = [];
+
+    teamFixtures.forEach(fixture => {
+        const isHome = fixture.team_h === teamId;
+        const difficulty = isHome ? fixture.team_h_difficulty : fixture.team_a_difficulty;
+
+        // Base clean sheet probability (inverse of difficulty)
+        // FDR 1 = 60%, FDR 2 = 50%, FDR 3 = 35%, FDR 4 = 25%, FDR 5 = 15%
+        const baseProbability = {1: 0.60, 2: 0.50, 3: 0.35, 4: 0.25, 5: 0.15}[difficulty] || 0.35;
+
+        // Adjust by team defensive strength (1-5 scale, normalize to 0.8-1.2)
+        const defStrength = isHome ? team.strength_defence_home : team.strength_defence_away;
+        const strengthMultiplier = 0.8 + (defStrength / 1000) * 0.4;
+
+        const csProbability = Math.min(baseProbability * strengthMultiplier, 0.75); // Cap at 75%
+        const fixturePoints = csProbability * pointsPerCS;
+
+        totalCSPoints += fixturePoints;
+        breakdown.push({fixture, probability: csProbability, points: fixturePoints});
+    });
+
+    return {
+        points: totalCSPoints,
+        probability: totalCSPoints / (teamFixtures.length * pointsPerCS),
+        breakdown
+    };
+}
+
+// Estimate bonus points based on ICT index
+function estimateBonusPoints(player, fixtures, numGW, currentGW) {
+    const teamId = player.team;
+    const ictIndex = parseFloat(player.ict_index) || 0;
+
+    if (ictIndex === 0) return {points: 0, ictIndex: 0};
+
+    // Get number of fixtures
+    const teamFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .slice(0, numGW);
+
+    // Bonus probability based on ICT index
+    // ICT > 50 = high chance (0.4 per game)
+    // ICT 35-50 = medium chance (0.25 per game)
+    // ICT 20-35 = low chance (0.1 per game)
+    // ICT < 20 = very low (0.05 per game)
+    let bonusPerGame = 0;
+    if (ictIndex > 50) bonusPerGame = 0.4;
+    else if (ictIndex > 35) bonusPerGame = 0.25;
+    else if (ictIndex > 20) bonusPerGame = 0.1;
+    else bonusPerGame = 0.05;
+
+    // Average bonus points when achieved (usually 1-3, avg 2)
+    const avgBonusValue = 2;
+
+    const totalBonusPoints = teamFixtures.length * bonusPerGame * avgBonusValue;
+
+    return {
+        points: totalBonusPoints,
+        ictIndex,
+        probability: bonusPerGame
+    };
+}
+
+// Calculate penalty for cards (yellow/red)
+function calculateCardPenalty(player, numGW) {
+    const yellowCards = player.yellow_cards || 0;
+    const redCards = player.red_cards || 0;
+
+    // Estimate card rate per game
+    const gamesPlayed = player.starts || 1;
+    const yellowRate = yellowCards / gamesPlayed;
+    const redRate = redCards / gamesPlayed;
+
+    // Yellow = -1, Red = -3
+    const expectedPenalty = (yellowRate * -1 + redRate * -3) * numGW;
+
+    return {
+        points: expectedPenalty,
+        yellowRate,
+        redRate
+    };
+}
+
+// Calculate player consistency (standard deviation of recent scores)
+function calculateConsistency(player) {
+    // Use form and variance as proxy for consistency
     const form = getPlayerForm(player);
-    const fixtureDifficulty = getFixtureDifficulty(player, fixtures, null, numGW, currentGW);
-    const awayRatio = getAwayGameRatio(player, fixtures, numGW, currentGW);
+    const pointsPerGame = parseFloat(player.points_per_game) || 0;
 
-    // Simple xP calculation: form adjusted by fixture difficulty
-    // Lower difficulty = easier = more points expected
-    const difficultyMultiplier = (6 - fixtureDifficulty) / 3; // Scale: 1-5 -> 0.33-1.67
-    const awayPenalty = 1 - (awayRatio * 0.1); // 10% penalty for away games
+    // Low variance = high consistency
+    // If form is close to ppg, player is consistent
+    const variance = Math.abs(form - pointsPerGame);
+    const consistency = Math.max(0, 1 - (variance / 5)); // Scale 0-1
 
-    return form * difficultyMultiplier * awayPenalty * numGW;
+    return {
+        score: consistency,
+        rating: consistency > 0.7 ? 'High' : consistency > 0.4 ? 'Medium' : 'Low'
+    };
+}
+
+// Calculate confidence score for prediction
+function calculateConfidence(player, xPComponents) {
+    let confidence = 0.5; // Base 50%
+
+    // Factor 1: Availability (30% weight)
+    const availability = (player.chance_of_playing_next_round || 100) / 100;
+    confidence += (availability - 0.5) * 0.3;
+
+    // Factor 2: Minutes stability (25% weight)
+    const minutesPlayed = player.minutes || 0;
+    const minutesStability = Math.min(minutesPlayed / 270, 1); // 270 = 3 full games
+    confidence += (minutesStability - 0.5) * 0.25;
+
+    // Factor 3: Consistency (25% weight)
+    const consistency = calculateConsistency(player);
+    confidence += (consistency.score - 0.5) * 0.25;
+
+    // Factor 4: Data quality (20% weight)
+    const hasXG = parseFloat(player.expected_goals_per_90) > 0;
+    const hasXA = parseFloat(player.expected_assists_per_90) > 0;
+    const dataQuality = (hasXG && hasXA) ? 1 : (hasXG || hasXA) ? 0.7 : 0.3;
+    confidence += (dataQuality - 0.5) * 0.2;
+
+    // Clamp to 0-1 range
+    confidence = Math.max(0, Math.min(1, confidence));
+
+    return {
+        score: confidence,
+        rating: confidence > 0.7 ? 'High' : confidence > 0.4 ? 'Medium' : 'Low',
+        color: confidence > 0.7 ? 'green' : confidence > 0.4 ? 'yellow' : 'red'
+    };
+}
+
+// Main expected points calculation with full breakdown
+function calculateExpectedPoints(player, fixtures, numGW = 3, currentGW, teams) {
+    // Calculate all components
+    const appearance = calculateAppearancePoints(player, fixtures, numGW, currentGW, teams);
+    const goals = calculateExpectedGoals(player, fixtures, numGW, currentGW, teams);
+    const assists = calculateExpectedAssists(player, fixtures, numGW, currentGW, teams);
+    const cleanSheets = calculateCleanSheetPoints(player, fixtures, numGW, currentGW, teams);
+    const bonus = estimateBonusPoints(player, fixtures, numGW, currentGW);
+    const cards = calculateCardPenalty(player, numGW);
+
+    // Sum all components
+    const totalPoints = appearance.points + goals.points + assists.points +
+                       cleanSheets.points + bonus.points + cards.points;
+
+    // Calculate confidence
+    const components = {appearance, goals, assists, cleanSheets, bonus, cards};
+    const confidence = calculateConfidence(player, components);
+    const consistency = calculateConsistency(player);
+
+    return {
+        total: totalPoints,
+        components,
+        confidence,
+        consistency
+    };
 }
 
 // Calculate removal priority score (Joshua Bull's algorithm)
@@ -383,12 +677,13 @@ function analyzeTransfers(bootstrapData, fixtures, currentGW) {
         // Calculate removal scores for all current team players
         const teamWithScores = currentTeam.map(player => {
             const removalAnalysis = calculateRemovalScore(player, fixtures, currentGW);
-            const expectedPoints = calculateExpectedPoints(player, fixtures, 3, currentGW);
+            const xPResult = calculateExpectedPoints(player, fixtures, 3, currentGW, teams);
 
             return {
                 player,
                 ...removalAnalysis,
-                expectedPoints
+                expectedPoints: xPResult.total,
+                xPBreakdown: xPResult
             };
         });
 
@@ -408,10 +703,14 @@ function analyzeTransfers(bootstrapData, fixtures, currentGW) {
                 .filter(p => p.element_type === position)
                 .filter(p => p.now_cost <= budget)
                 .filter(p => !MOCK_TEAM.players.includes(p.id)) // Not already in team
-                .map(p => ({
-                    player: p,
-                    expectedPoints: calculateExpectedPoints(p, fixtures, 3, currentGW)
-                }))
+                .map(p => {
+                    const xPResult = calculateExpectedPoints(p, fixtures, 3, currentGW, teams);
+                    return {
+                        player: p,
+                        expectedPoints: xPResult.total,
+                        xPBreakdown: xPResult
+                    };
+                })
                 .sort((a, b) => b.expectedPoints - a.expectedPoints)
                 .slice(0, 3); // Top 3 replacements
 
@@ -430,7 +729,7 @@ function analyzeTransfers(bootstrapData, fixtures, currentGW) {
     }
 }
 
-// Display transfer analysis results
+// Display transfer analysis results with enhanced xP breakdowns
 function displayTransferAnalysis(suggestions, teamLookup) {
     const transferAnalysis = document.getElementById('transferAnalysis');
 
@@ -444,7 +743,7 @@ function displayTransferAnalysis(suggestions, teamLookup) {
     // Header
     html += '<div class="transfer-header">';
     html += '<h3>TRANSFER ANALYSIS</h3>';
-    html += '<p class="transfer-subtitle">Remove underperformers based on form, fixtures, and availability</p>';
+    html += '<p class="transfer-subtitle">Enhanced Expected Points Model with Component Breakdown</p>';
     html += '</div>';
 
     suggestions.forEach((suggestion, index) => {
@@ -452,6 +751,7 @@ function displayTransferAnalysis(suggestions, teamLookup) {
         const outTeam = teamLookup[outPlayer.team];
         const outPrice = (outPlayer.now_cost / 10).toFixed(1);
         const outScore = suggestion.out;
+        const outXP = outScore.xPBreakdown;
 
         html += '<div class="transfer-suggestion">';
 
@@ -459,13 +759,23 @@ function displayTransferAnalysis(suggestions, teamLookup) {
         html += '<div class="transfer-out">';
         html += `<div class="transfer-label">REMOVE #${index + 1}</div>`;
         html += `<div class="player-name">${outPlayer.web_name} (${outTeam}) - £${outPrice}m</div>`;
-        html += `<div class="player-stats">`;
-        html += `Form: ${outScore.form.toFixed(1)} | `;
-        html += `Fixtures: ${outScore.fixtureDifficulty.toFixed(1)} avg | `;
-        html += `Away: ${(outScore.awayRatio * 100).toFixed(0)}% | `;
-        html += `Score: ${outScore.score.toFixed(2)}`;
+
+        // xP Breakdown for player to remove
+        html += `<div class="xp-breakdown">`;
+        html += `<div class="xp-total">Expected: ${outScore.expectedPoints.toFixed(1)}pts (next 3 GW)</div>`;
+        html += `<div class="xp-components">`;
+        html += `  Appearance: ${outXP.components.appearance.points.toFixed(1)} | `;
+        html += `  Goals: ${outXP.components.goals.points.toFixed(1)} | `;
+        html += `  Assists: ${outXP.components.assists.points.toFixed(1)} | `;
+        html += `  CS: ${outXP.components.cleanSheets.points.toFixed(1)} | `;
+        html += `  Bonus: ${outXP.components.bonus.points.toFixed(1)}`;
         html += `</div>`;
-        html += `<div class="expected-points">Expected: ${outScore.expectedPoints.toFixed(1)}pts (next 3 GW)</div>`;
+        html += `<div class="xp-confidence">`;
+        html += `  Confidence: <span class="confidence-${outXP.confidence.color}">${outXP.confidence.rating}</span> `;
+        html += `  | Consistency: ${outXP.consistency.rating}`;
+        html += `</div>`;
+        html += `</div>`;
+
         html += '</div>';
 
         // Best replacements
@@ -479,13 +789,61 @@ function displayTransferAnalysis(suggestions, teamLookup) {
                 const inPrice = (inPlayer.now_cost / 10).toFixed(1);
                 const gain = replacement.expectedPoints - outScore.expectedPoints - 4; // Account for -4 hit
                 const gainClass = gain > 0 ? 'positive' : 'negative';
+                const inXP = replacement.xPBreakdown;
 
-                html += `<div class="replacement-option ${idx === 0 ? 'best' : ''}">`;
+                html += `<div class="replacement-option ${idx === 0 ? 'best' : ''}" data-index="${index}-${idx}">`;
+
+                // Main info
+                html += `<div class="replacement-main">`;
                 html += `<span class="option-number">${idx + 1}.</span> `;
                 html += `${inPlayer.web_name} (${inTeam}) - £${inPrice}m - `;
                 html += `Expected: ${replacement.expectedPoints.toFixed(1)}pts | `;
                 html += `<span class="net-gain ${gainClass}">Net: ${gain > 0 ? '+' : ''}${gain.toFixed(1)}pts</span>`;
-                html += '</div>';
+                html += ` <button class="toggle-breakdown" onclick="toggleBreakdown('${index}-${idx}')">▼ Details</button>`;
+                html += `</div>`;
+
+                // Detailed breakdown (hidden by default)
+                html += `<div class="xp-detail" id="breakdown-${index}-${idx}" style="display: none;">`;
+                html += `<div class="xp-detail-header">Expected Points Breakdown:</div>`;
+                html += `<div class="xp-detail-row">`;
+                html += `  <span class="xp-component">Appearance:</span> `;
+                html += `  <span class="xp-value">${inXP.components.appearance.points.toFixed(1)}pts</span>`;
+                html += `  <span class="xp-explain">(${(inXP.components.appearance.probability * 100).toFixed(0)}% to play ${inXP.components.appearance.games} games)</span>`;
+                html += `</div>`;
+                html += `<div class="xp-detail-row">`;
+                html += `  <span class="xp-component">Goals:</span> `;
+                html += `  <span class="xp-value">${inXP.components.goals.points.toFixed(1)}pts</span>`;
+                html += `  <span class="xp-explain">(${inXP.components.goals.xG.toFixed(2)} xG)</span>`;
+                html += `</div>`;
+                html += `<div class="xp-detail-row">`;
+                html += `  <span class="xp-component">Assists:</span> `;
+                html += `  <span class="xp-value">${inXP.components.assists.points.toFixed(1)}pts</span>`;
+                html += `  <span class="xp-explain">(${inXP.components.assists.xA.toFixed(2)} xA)</span>`;
+                html += `</div>`;
+                html += `<div class="xp-detail-row">`;
+                html += `  <span class="xp-component">Clean Sheets:</span> `;
+                html += `  <span class="xp-value">${inXP.components.cleanSheets.points.toFixed(1)}pts</span>`;
+                html += `  <span class="xp-explain">(${(inXP.components.cleanSheets.probability * 100).toFixed(0)}% probability)</span>`;
+                html += `</div>`;
+                html += `<div class="xp-detail-row">`;
+                html += `  <span class="xp-component">Bonus:</span> `;
+                html += `  <span class="xp-value">${inXP.components.bonus.points.toFixed(1)}pts</span>`;
+                html += `  <span class="xp-explain">(ICT: ${inXP.components.bonus.ictIndex.toFixed(1)})</span>`;
+                html += `</div>`;
+                if (inXP.components.cards.points !== 0) {
+                    html += `<div class="xp-detail-row">`;
+                    html += `  <span class="xp-component">Cards:</span> `;
+                    html += `  <span class="xp-value">${inXP.components.cards.points.toFixed(1)}pts</span>`;
+                    html += `  <span class="xp-explain">(penalty)</span>`;
+                    html += `</div>`;
+                }
+                html += `<div class="xp-detail-footer">`;
+                html += `  Confidence: <span class="confidence-${inXP.confidence.color}">${inXP.confidence.rating}</span> `;
+                html += `  | Consistency: ${inXP.consistency.rating}`;
+                html += `</div>`;
+                html += `</div>`; // End xp-detail
+
+                html += '</div>'; // End replacement-option
             });
 
             html += '</div>';
@@ -497,6 +855,20 @@ function displayTransferAnalysis(suggestions, teamLookup) {
     html += '</div>'; // End transfer-results
 
     transferAnalysis.innerHTML = html;
+}
+
+// Toggle breakdown visibility
+function toggleBreakdown(id) {
+    const breakdown = document.getElementById(`breakdown-${id}`);
+    const button = event.target;
+
+    if (breakdown.style.display === 'none') {
+        breakdown.style.display = 'block';
+        button.textContent = '▲ Details';
+    } else {
+        breakdown.style.display = 'none';
+        button.textContent = '▼ Details';
+    }
 }
 
 // Event listeners
