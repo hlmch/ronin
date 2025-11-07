@@ -472,3 +472,223 @@ footer {
         margin-top: 8px;
     }
 }
+
+/* ============================================================================
+   WILDCARD BUILDER STYLES - Step 4
+   ============================================================================ */
+
+.wildcard-section {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+    padding: 25px;
+    border-radius: 8px;
+    border: 2px solid #38003c;
+}
+
+.wildcard-controls {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.wildcard-note {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    font-style: italic;
+}
+
+.wildcard-team {
+    font-family: 'Courier New', monospace;
+}
+
+.wildcard-results {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.wildcard-header {
+    background: linear-gradient(135deg, #38003c 0%, #00ff87 100%);
+    color: white;
+    padding: 20px;
+    text-align: center;
+}
+
+.wildcard-header h3 {
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+    letter-spacing: 2px;
+}
+
+.team-summary {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    font-size: 0.95rem;
+}
+
+.summary-item {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.formation-pitch {
+    background: linear-gradient(180deg, #1a5f1a 0%, #2d8a2d 100%);
+    padding: 30px 20px;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+.formation-row {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+}
+
+.player-card {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    min-width: 110px;
+    max-width: 130px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s;
+    border: 2px solid #38003c;
+}
+
+.player-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.player-card-name {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-card-team {
+    color: #666;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
+}
+
+.player-card-price {
+    color: #38003c;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.player-card-xp {
+    background: #00ff87;
+    color: #38003c;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+}
+
+.player-card-conf {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+.bench-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-top: 2px solid #e0e0e0;
+}
+
+.bench-label {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #38003c;
+    margin-bottom: 12px;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.bench-players {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.bench-card {
+    opacity: 0.85;
+    border-color: #999;
+}
+
+.bench-card:hover {
+    opacity: 1;
+}
+
+.team-distribution {
+    background: #f0f0f0;
+    padding: 15px;
+    text-align: center;
+    border-top: 2px solid #e0e0e0;
+}
+
+.dist-label {
+    font-weight: bold;
+    color: #38003c;
+    margin-bottom: 10px;
+}
+
+.team-count {
+    background: white;
+    padding: 6px 12px;
+    margin: 4px;
+    border-radius: 4px;
+    display: inline-block;
+    font-size: 0.85rem;
+    border: 1px solid #ddd;
+}
+
+/* Mobile responsiveness for wildcard builder */
+@media (max-width: 768px) {
+    .formation-pitch {
+        padding: 20px 10px;
+        min-height: 400px;
+    }
+
+    .formation-row {
+        gap: 10px;
+    }
+
+    .player-card {
+        min-width: 90px;
+        max-width: 100px;
+        padding: 8px;
+    }
+
+    .player-card-name {
+        font-size: 0.8rem;
+    }
+
+    .team-summary {
+        gap: 15px;
+    }
+
+    .summary-item {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+    }
+}

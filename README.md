@@ -1,6 +1,6 @@
-# FPL Optimizer - Step 3: Enhanced Expected Points Model
+# FPL Optimizer - Step 4: Team Optimization & Wildcard Builder
 
-A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model and transfer analysis based on Joshua Bull's mathematical framework.
+A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model, transfer analysis, and knapsack-based team optimization based on Joshua Bull's mathematical framework.
 
 ## Features
 
@@ -29,6 +29,17 @@ A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model
 - **Confidence Scoring**: Multi-factor confidence (availability, minutes, consistency, data quality)
 - **Expandable Breakdowns**: Click "Details" to see full component analysis
 - **Color-Coded Confidence**: Green (high), Yellow (medium), Red (low)
+
+### Step 4: Team Optimization ✅
+- **Wildcard Builder**: One-click optimal 15-player squad generation
+- **Knapsack Solver**: Greedy algorithm with FPL constraints
+- **Formation Optimizer**: Tests all 7 valid formations, picks best
+- **Budget Constraint**: £100m budget with 98-100% utilization
+- **Team Constraint**: Max 3 players per team enforced
+- **Value Ratio Ranking**: xP per £1m for optimal picks
+- **Formation Visualization**: Green pitch with player cards
+- **Bench Selection**: Automatically picks budget bench
+- **Team Distribution**: Shows which teams are represented
 
 ## API Endpoints
 
@@ -157,22 +168,68 @@ Multi-factor confidence rating (0-100%):
 - **Consistency** (25%): Form variance vs points per game
 - **Data Quality** (20%): xG/xA data availability
 
+## Team Optimization Algorithm
+
+### Knapsack Problem with Constraints:
+
+```javascript
+// Objective: Maximize sum of expected points
+// Constraints:
+//   - Total cost ≤ £100.0m
+//   - Exactly 15 players (2 GK, 5 DEF, 5 MID, 3 FWD)
+//   - Max 3 players from same team
+//   - Starting XI must form valid formation (e.g., 3-4-3)
+```
+
+### Greedy Algorithm:
+1. Calculate xP for all 600+ players
+2. Calculate value ratio (xP per £1m)
+3. Sort each position by value ratio
+4. Test all 7 valid formations
+5. For each formation:
+   - Greedily select highest value players
+   - Respect budget and team constraints
+   - Split into XI (best xP) + bench
+6. Return formation with highest total xP
+
+### Valid Formations:
+- 3-4-3 (balanced attack)
+- 3-5-2 (midfield heavy)
+- 4-3-3 (defensive)
+- 4-4-2 (classic)
+- 4-5-1 (ultra defensive)
+- 5-3-2 (park the bus)
+- 5-4-1 (maximum defense)
+
+### Value Ratio Example:
+```
+Salah: 59.3 xP ÷ £12.7m = 4.67 pts/£m
+Palmer: 48.2 xP ÷ £10.8m = 4.46 pts/£m
+Saka: 45.0 xP ÷ £10.0m = 4.50 pts/£m
+```
+
+Higher ratio = better value for money
+
 ## Usage
 
-1. Click "Load FPL Data" to fetch and display data
-2. View top 50 players sorted by total points
-3. Check upcoming fixtures with difficulty ratings
-4. **NEW:** Review enhanced transfer suggestions with:
-   - Top 3 underperformers identified by removal score
+1. **Load Data**: Click "Load FPL Data" to fetch player and fixture data
+2. **View Players**: Top 50 players sorted by total points
+3. **Check Fixtures**: Upcoming fixtures with difficulty ratings
+4. **Transfer Analysis**: Review transfer suggestions
+   - Top 3 underperformers to remove
    - Best 3 replacements with full xP breakdown
-   - Component analysis: Appearance, Goals, Assists, CS, Bonus
-   - Confidence rating (High/Medium/Low) with color coding
-   - Consistency rating based on form variance
-   - **Click "▼ Details"** to expand full xP breakdown
-   - Net gain/loss calculation including -4 hit penalty
-5. Data is cached automatically (check footer for TTL info)
-6. Click "Refresh Data" to force fetch
-7. Click "Clear Cache" to remove cached data
+   - **Click "▼ Details"** for component analysis
+   - Net gain/loss with -4 hit penalty
+5. **Wildcard Builder**: Click "Build Optimal Team"
+   - Mathematically optimal 15-player squad
+   - Formation visualization on green pitch
+   - Player cards show name, team, price, xP, confidence
+   - Bench players displayed separately
+   - Team distribution shows squad balance
+6. **Cache Management**:
+   - Data cached automatically (1hr static, 5min live)
+   - Click "Refresh Data" to update
+   - Click "Clear Cache" to reset
 
 ### Understanding the xP Breakdown
 
@@ -204,19 +261,46 @@ For testing, the app uses a mock 15-player team. To use your own team:
 2. Update `MOCK_TEAM.players` array in `script.js`
 3. Set `MOCK_TEAM.bank` to your available budget
 
-## Next Steps (Step 4+)
+## Wildcard Builder Features
+
+The optimal team builder includes:
+- **Automatic Formation Selection**: Tests all 7 valid formations
+- **Budget Optimization**: Uses 98-100% of £100m budget
+- **Team Balance**: Enforces max 3 players per team
+- **Value Picks**: Prioritizes high xP per £1m players
+- **Green Pitch Display**: Visual formation layout
+- **Confidence Indicators**: Shows prediction reliability
+- **Bench Optimization**: Selects budget bench automatically
+
+Example output:
+```
+OPTIMAL WILDCARD TEAM (3-4-3)
+Cost: £99.8m | Expected: 67.3pts/GW | Budget Left: £0.2m
+
+[Visual formation on green pitch]
+GK: Ramsdale (ARS) £5.0m 4.2pts
+DEF: Gabriel (ARS) £6.0m 5.8pts | Saliba (ARS) £5.5m 5.3pts | TAA (LIV) £7.5m 6.9pts
+MID: Salah (LIV) £12.7m 14.1pts | Palmer (CHE) £10.8m 11.8pts | Saka (ARS) £10.0m 10.5pts | Mbeumo (BRE) £7.9m 7.6pts
+FWD: Isak (NEW) £8.3m 9.2pts | Watkins (AVL) £9.0m 8.7pts | Wood (NFO) £6.8m 5.4pts
+
+BENCH: Turner (4.0) | Lewis (4.5) | Dibling (4.5) | Archer (4.5)
+Team Distribution: ARS: 3 | LIV: 2 | CHE: 1 | NEW: 1 | ...
+```
+
+## Next Steps (Step 5+)
 
 - ✅ ~~Core API setup and caching~~
 - ✅ ~~Transfer optimizer with underperformer removal~~
 - ✅ ~~Enhanced Expected Points model with component breakdown~~
-- 🔲 Team constraint validation (3 players per team max)
-- 🔲 Formation optimizer (valid starting XI + bench)
-- 🔲 Captain selection algorithm with EO consideration
-- 🔲 Wildcard team builder with budget optimization
-- 🔲 Chip strategy advisor (Triple Captain, Bench Boost, Free Hit)
-- 🔲 Historical performance backtesting
-- 🔲 Machine learning for bonus prediction
-- 🔲 Differential identification (low ownership, high xP)
+- ✅ ~~Team optimization with knapsack solver~~
+- 🔲 Captain selection algorithm (xP × 2 with EO consideration)
+- 🔲 Chip strategy advisor (Triple Captain, Bench Boost, Free Hit timing)
+- 🔲 Interactive team editor (lock players, set constraints)
+- 🔲 Historical performance backtesting (validate xP model)
+- 🔲 Machine learning for bonus prediction improvement
+- 🔲 Differential finder (low ownership, high xP players)
+- 🔲 Fixture ticker (identify blank/double gameweeks)
+- 🔲 Price change predictor (target risers, avoid fallers)
 
 ## License
 

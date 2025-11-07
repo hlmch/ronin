@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPL Optimizer - Step 3: Expected Points Model</title>
+    <title>FPL Optimizer - Step 4: Team Optimization</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
             <h1>FPL Optimizer</h1>
-            <p class="subtitle">Step 3: Enhanced Expected Points Model</p>
+            <p class="subtitle">Step 4: Team Optimization & Wildcard Builder</p>
         </header>
 
         <div class="controls">
@@ -55,6 +55,17 @@
                 <h2>Transfer Optimizer</h2>
                 <div id="transferAnalysis" class="transfer-analysis">
                     <p class="placeholder">Load FPL data to see transfer suggestions</p>
+                </div>
+            </div>
+
+            <div class="section wildcard-section">
+                <h2>Wildcard Builder</h2>
+                <div class="wildcard-controls">
+                    <button id="buildWildcardBtn" class="btn-primary">Build Optimal Team</button>
+                    <p class="wildcard-note">Uses xP model to build the best possible 15-player squad within £100m budget</p>
+                </div>
+                <div id="wildcardTeam" class="wildcard-team">
+                    <p class="placeholder">Click "Build Optimal Team" to see the mathematically optimal squad</p>
                 </div>
             </div>
         </div>

@@ -156,6 +156,13 @@ async function loadFPLData() {
         // Run transfer analysis if we have a team
         analyzeTransfers(bootstrapData, fixturesData, currentGW);
 
+        // Store data globally for wildcard builder
+        window.fplData = {
+            bootstrap: bootstrapData,
+            fixtures: fixturesData,
+            currentGW
+        };
+
         loadBtn.textContent = 'Refresh Data';
 
     } catch (error) {
@@ -871,10 +878,332 @@ function toggleBreakdown(id) {
     }
 }
 
+// ============================================================================
+// TEAM OPTIMIZATION - Step 4: Knapsack Solver for Optimal Team
+// ============================================================================
+
+// Valid FPL formations (DEF, MID, FWD)
+const VALID_FORMATIONS = [
+    [3, 4, 3], [3, 5, 2], [4, 3, 3],
+    [4, 4, 2], [4, 5, 1], [5, 3, 2], [5, 4, 1]
+];
+
+// Position requirements for a full 15-player squad
+const SQUAD_REQUIREMENTS = {
+    1: 2,  // Goalkeepers
+    2: 5,  // Defenders
+    3: 5,  // Midfielders
+    4: 3   // Forwards
+};
+
+// Validate formation
+function validateFormation(defenders, midfielders, forwards) {
+    return VALID_FORMATIONS.some(f =>
+        f[0] === defenders && f[1] === midfielders && f[2] === forwards
+    );
+}
+
+// Calculate value ratio (xP per million)
+function calculateValueRatio(player, xP) {
+    const price = player.now_cost / 10; // Convert to actual price
+    if (price === 0) return 0;
+    return xP / price;
+}
+
+// Optimize team with greedy knapsack approach
+function optimizeTeam(allPlayers, fixtures, currentGW, teams, budget = 100.0) {
+    // Calculate xP for all players
+    const playersWithXP = allPlayers.map(player => {
+        const xPResult = calculateExpectedPoints(player, fixtures, 3, currentGW, teams);
+        const valueRatio = calculateValueRatio(player, xPResult.total);
+
+        return {
+            player,
+            xP: xPResult.total,
+            xPBreakdown: xPResult,
+            valueRatio,
+            price: player.now_cost / 10,
+            position: player.element_type,
+            team: player.team
+        };
+    });
+
+    // Sort by value ratio within each position
+    const byPosition = {1: [], 2: [], 3: [], 4: []};
+    playersWithXP.forEach(p => {
+        byPosition[p.position].push(p);
+    });
+
+    // Sort each position by value ratio
+    Object.keys(byPosition).forEach(pos => {
+        byPosition[pos].sort((a, b) => b.valueRatio - a.valueRatio);
+    });
+
+    // Try all valid formations and find the best
+    let bestTeam = null;
+    let bestPoints = 0;
+
+    VALID_FORMATIONS.forEach(formation => {
+        const team = buildTeamForFormation(byPosition, formation, budget, teams);
+        if (team && team.totalXP > bestPoints) {
+            bestTeam = team;
+            bestPoints = team.totalXP;
+        }
+    });
+
+    return bestTeam;
+}
+
+// Build optimal team for a specific formation
+function buildTeamForFormation(byPosition, formation, budget, teams) {
+    const [defenders, midfielders, forwards] = formation;
+    const selected = [];
+    const teamCounts = {};
+    let remainingBudget = budget;
+
+    // Helper to check team constraint (max 3 per team)
+    const canAddPlayer = (player) => {
+        const count = teamCounts[player.team] || 0;
+        return count < 3;
+    };
+
+    // Helper to add player
+    const addPlayer = (player) => {
+        selected.push(player);
+        remainingBudget -= player.price;
+        teamCounts[player.team] = (teamCounts[player.team] || 0) + 1;
+    };
+
+    // Select players by position
+    // 1. Goalkeepers (2 needed - 1 starter + 1 bench)
+    let gkCount = 0;
+    for (const p of byPosition[1]) {
+        if (gkCount >= 2) break;
+        if (p.price <= remainingBudget && canAddPlayer(p.player)) {
+            addPlayer(p);
+            gkCount++;
+        }
+    }
+    if (gkCount < 2) return null; // Can't build valid team
+
+    // 2. Defenders (need formation[0] starters + more for bench up to 5 total)
+    let defCount = 0;
+    for (const p of byPosition[2]) {
+        if (defCount >= 5) break;
+        if (p.price <= remainingBudget && canAddPlayer(p.player)) {
+            addPlayer(p);
+            defCount++;
+        }
+    }
+    if (defCount < defenders) return null; // Not enough for formation
+
+    // 3. Midfielders (need formation[1] starters + more for bench up to 5 total)
+    let midCount = 0;
+    for (const p of byPosition[3]) {
+        if (midCount >= 5) break;
+        if (p.price <= remainingBudget && canAddPlayer(p.player)) {
+            addPlayer(p);
+            midCount++;
+        }
+    }
+    if (midCount < midfielders) return null; // Not enough for formation
+
+    // 4. Forwards (need formation[2] starters + more for bench up to 3 total)
+    let fwdCount = 0;
+    for (const p of byPosition[4]) {
+        if (fwdCount >= 3) break;
+        if (p.price <= remainingBudget && canAddPlayer(p.player)) {
+            addPlayer(p);
+            fwdCount++;
+        }
+    }
+    if (fwdCount < forwards) return null; // Not enough for formation
+
+    // Check if we have exactly 15 players
+    if (selected.length !== 15) return null;
+
+    // Split into starting XI and bench
+    // Starting XI: 1 GK + formation defenders/mids/forwards (sorted by xP)
+    const gks = selected.filter(p => p.position === 1).sort((a, b) => b.xP - a.xP);
+    const defs = selected.filter(p => p.position === 2).sort((a, b) => b.xP - a.xP);
+    const mids = selected.filter(p => p.position === 3).sort((a, b) => b.xP - a.xP);
+    const fwds = selected.filter(p => p.position === 4).sort((a, b) => b.xP - a.xP);
+
+    const startingXI = [
+        gks[0],
+        ...defs.slice(0, defenders),
+        ...mids.slice(0, midfielders),
+        ...fwds.slice(0, forwards)
+    ];
+
+    const bench = [
+        gks[1],
+        ...defs.slice(defenders),
+        ...mids.slice(midfielders),
+        ...fwds.slice(forwards)
+    ];
+
+    const totalCost = budget - remainingBudget;
+    const totalXP = startingXI.reduce((sum, p) => sum + p.xP, 0);
+
+    return {
+        startingXI,
+        bench,
+        formation,
+        totalCost,
+        totalXP,
+        teamCounts,
+        remainingBudget
+    };
+}
+
+// Optimize wildcard team (called when user clicks "Build Optimal Team")
+function optimizeWildcard(bootstrapData, fixtures, currentGW) {
+    const wildcardSection = document.getElementById('wildcardTeam');
+
+    if (!wildcardSection) {
+        console.log('Wildcard section not found in DOM');
+        return;
+    }
+
+    try {
+        wildcardSection.innerHTML = '<p class="loading">Optimizing team...</p>';
+
+        const { elements, teams } = bootstrapData;
+
+        // Run optimization
+        const optimalTeam = optimizeTeam(elements, fixtures, currentGW, teams, 100.0);
+
+        if (!optimalTeam) {
+            wildcardSection.innerHTML = '<p class="error">Could not build optimal team within constraints</p>';
+            return;
+        }
+
+        // Display optimal team
+        displayOptimalTeam(optimalTeam, teams);
+
+    } catch (error) {
+        console.error('Error optimizing team:', error);
+        wildcardSection.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+    }
+}
+
+// Display optimal team in formation layout
+function displayOptimalTeam(team, teams) {
+    const wildcardSection = document.getElementById('wildcardTeam');
+
+    // Create team lookup
+    const teamLookup = {};
+    teams.forEach(t => {
+        teamLookup[t.id] = t.short_name;
+    });
+
+    const [defs, mids, fwds] = team.formation;
+
+    let html = '<div class="wildcard-results">';
+
+    // Header
+    html += '<div class="wildcard-header">';
+    html += `<h3>OPTIMAL WILDCARD TEAM (${defs}-${mids}-${fwds})</h3>`;
+    html += `<div class="team-summary">`;
+    html += `<span class="summary-item">Cost: £${team.totalCost.toFixed(1)}m</span>`;
+    html += `<span class="summary-item">Expected: ${team.totalXP.toFixed(1)}pts/GW</span>`;
+    html += `<span class="summary-item">Budget Left: £${team.remainingBudget.toFixed(1)}m</span>`;
+    html += `</div>`;
+    html += '</div>';
+
+    // Formation display
+    html += '<div class="formation-pitch">';
+
+    // Goalkeeper
+    const gk = team.startingXI.filter(p => p.position === 1)[0];
+    html += '<div class="formation-row gk-row">';
+    html += formatPlayerCard(gk, teamLookup);
+    html += '</div>';
+
+    // Defenders
+    const defenders = team.startingXI.filter(p => p.position === 2);
+    html += '<div class="formation-row def-row">';
+    defenders.forEach(p => html += formatPlayerCard(p, teamLookup));
+    html += '</div>';
+
+    // Midfielders
+    const midfielders = team.startingXI.filter(p => p.position === 3);
+    html += '<div class="formation-row mid-row">';
+    midfielders.forEach(p => html += formatPlayerCard(p, teamLookup));
+    html += '</div>';
+
+    // Forwards
+    const forwards = team.startingXI.filter(p => p.position === 4);
+    html += '<div class="formation-row fwd-row">';
+    forwards.forEach(p => html += formatPlayerCard(p, teamLookup));
+    html += '</div>';
+
+    html += '</div>'; // End formation-pitch
+
+    // Bench
+    html += '<div class="bench-section">';
+    html += '<div class="bench-label">BENCH</div>';
+    html += '<div class="bench-players">';
+    team.bench.forEach(p => html += formatPlayerCard(p, teamLookup, true));
+    html += '</div>';
+    html += '</div>';
+
+    // Team counts (3 per team check)
+    html += '<div class="team-distribution">';
+    html += '<div class="dist-label">Team Distribution:</div>';
+    Object.entries(team.teamCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([teamId, count]) => {
+            html += `<span class="team-count">${teamLookup[teamId]}: ${count}</span>`;
+        });
+    html += '</div>';
+
+    html += '</div>'; // End wildcard-results
+
+    wildcardSection.innerHTML = html;
+}
+
+// Format player card for display
+function formatPlayerCard(playerData, teamLookup, isBench = false) {
+    const player = playerData.player;
+    const teamCode = teamLookup[player.team];
+    const price = playerData.price.toFixed(1);
+    const xP = playerData.xP.toFixed(1);
+    const confidence = playerData.xPBreakdown.confidence;
+
+    let html = `<div class="player-card ${isBench ? 'bench-card' : ''}">`;
+    html += `<div class="player-card-name">${player.web_name}</div>`;
+    html += `<div class="player-card-team">(${teamCode})</div>`;
+    html += `<div class="player-card-price">£${price}m</div>`;
+    html += `<div class="player-card-xp">${xP}pts</div>`;
+    html += `<div class="player-card-conf confidence-${confidence.color}">${confidence.rating[0]}</div>`;
+    html += `</div>`;
+
+    return html;
+}
+
+// Build optimal wildcard team (called when user clicks the button)
+function buildWildcard() {
+    if (!window.fplData) {
+        alert('Please load FPL data first');
+        return;
+    }
+
+    const { bootstrap, fixtures, currentGW } = window.fplData;
+    optimizeWildcard(bootstrap, fixtures, currentGW);
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loadDataBtn').addEventListener('click', loadFPLData);
     document.getElementById('clearCacheBtn').addEventListener('click', clearCache);
+
+    // Wildcard builder button (if exists)
+    const wildcardBtn = document.getElementById('buildWildcardBtn');
+    if (wildcardBtn) {
+        wildcardBtn.addEventListener('click', buildWildcard);
+    }
 
     // Update cache status on load
     updateCacheStatus();
