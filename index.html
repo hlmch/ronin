@@ -3,93 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FPL Optimizer - Mathematical Team Building & Strategy</title>
+    <title>FPL Optimizer - Mathematical Team Analysis</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>FPL Optimizer</h1>
-            <p class="subtitle">Data-Driven Fantasy Premier League Analysis</p>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>⚽ FPL Optimizer</h1>
+            <p class="app-subtitle">Mathematical Analysis & Team Building</p>
         </header>
 
-        <div class="controls">
-            <button id="loadDataBtn" class="btn-primary">Load FPL Data</button>
-            <button id="clearCacheBtn" class="btn-secondary">Clear Cache</button>
-            <div class="cache-status">
-                <span id="cacheStatus">Cache: Empty</span>
-            </div>
-        </div>
+        <nav class="app-nav">
+            <button class="nav-btn active" data-page="dashboard">🏠 Dashboard</button>
+            <button class="nav-btn" data-page="players">📊 Player Database</button>
+            <button class="nav-btn" data-page="myteam">👥 My Team</button>
+            <button class="nav-btn" data-page="wildcard">🃏 Wildcard Builder</button>
+        </nav>
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-label">Players Loaded</div>
-                <div class="stat-value" id="playerCount">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Current Gameweek</div>
-                <div class="stat-value" id="currentGW">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Fixtures</div>
-                <div class="stat-value" id="fixtureCount">0</div>
-            </div>
-        </div>
+        <!-- DASHBOARD PAGE -->
+        <div id="dashboard" class="page active">
+            <div class="team-input-section">
+                <h2>Enter Your Team ID</h2>
+                <p class="help-text">Find your Team ID in your FPL URL:</p>
+                <p class="help-example">fantasy.premierleague.com/entry/<strong class="highlight">123456</strong>/event/15</p>
 
-        <div class="content">
-            <div class="section">
-                <h2>Top Players by Points</h2>
-                <div id="playersList" class="players-list">
-                    <p class="placeholder">Click "Load FPL Data" to fetch player information</p>
+                <div class="input-group">
+                    <input type="number" id="teamIdInput" placeholder="e.g., 123456" />
+                    <button id="loadTeamBtn" class="btn-primary">Load My Team</button>
                 </div>
-            </div>
 
-            <div class="section">
-                <h2>Upcoming Fixtures</h2>
-                <div id="fixturesList" class="fixtures-list">
-                    <p class="placeholder">Fixtures will appear here</p>
-                </div>
-            </div>
-
-            <div class="section transfer-section">
-                <h2>Transfer Optimizer</h2>
-                <div id="transferAnalysis" class="transfer-analysis">
-                    <p class="placeholder">Load FPL data to see transfer suggestions</p>
-                </div>
-            </div>
-
-            <div class="section wildcard-section">
-                <h2>Wildcard Builder</h2>
-                <div class="wildcard-controls">
-                    <button id="buildWildcardBtn" class="btn-primary">Build Optimal Team</button>
-                    <p class="wildcard-note">Uses xP model to build the best possible 15-player squad within £100m budget</p>
-                </div>
-                <div id="wildcardTeam" class="wildcard-team">
-                    <p class="placeholder">Click "Build Optimal Team" to see the mathematically optimal squad</p>
-                </div>
-            </div>
-
-            <div class="section captain-section">
-                <h2>Captain Selector</h2>
-                <div class="captain-controls">
-                    <div class="strategy-selector">
-                        <span class="strategy-label">Strategy:</span>
-                        <button class="strategy-btn active" data-strategy="SAFE">🛡️ Safe</button>
-                        <button class="strategy-btn" data-strategy="BALANCED">⚖️ Balanced</button>
-                        <button class="strategy-btn" data-strategy="AGGRESSIVE">🎯 Aggressive</button>
+                <div id="teamInfo" class="team-info" style="display: none;">
+                    <div class="info-card">
+                        <h3 id="teamName">-</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Manager:</span>
+                                <span class="info-value" id="managerName">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Overall Rank:</span>
+                                <span class="info-value" id="overallRank">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Total Points:</span>
+                                <span class="info-value" id="totalPoints">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Team Value:</span>
+                                <span class="info-value" id="teamValue">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Bank:</span>
+                                <span class="info-value" id="bankValue">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Free Transfers:</span>
+                                <span class="info-value" id="freeTransfers">-</span>
+                            </div>
+                        </div>
                     </div>
-                    <p class="captain-note">Algorithm balances form, fixture, and ownership to recommend captaincy picks</p>
                 </div>
-                <div id="captainAnalysis" class="captain-analysis">
-                    <p class="placeholder">Load FPL data to see captain recommendations</p>
+            </div>
+
+            <div id="quickStats" class="quick-stats" style="display: none;">
+                <h2>Quick Actions</h2>
+                <div class="action-cards">
+                    <div class="action-card" onclick="switchPage('myteam')">
+                        <div class="action-icon">👥</div>
+                        <h3>My Team Analysis</h3>
+                        <p>Transfers, captain picks & team suggestions</p>
+                    </div>
+                    <div class="action-card" onclick="switchPage('players')">
+                        <div class="action-icon">📊</div>
+                        <h3>Player Database</h3>
+                        <p>All players with stats, xG, fixtures & filtering</p>
+                    </div>
+                    <div class="action-card" onclick="switchPage('wildcard')">
+                        <div class="action-icon">🃏</div>
+                        <h3>Wildcard Builder</h3>
+                        <p>Build optimal team within £100m budget</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <footer>
-            <p>Data cached in localStorage • 5min TTL for live data • 1hr TTL for static data</p>
-        </footer>
+        <!-- PLAYER DATABASE PAGE -->
+        <div id="players" class="page">
+            <div class="page-header">
+                <h2>Player Database</h2>
+                <button id="refreshDataBtn" class="btn-secondary">🔄 Refresh Data</button>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="playerSearch" placeholder="🔍 Search players..." />
+                <select id="positionFilter">
+                    <option value="">All Positions</option>
+                    <option value="1">Goalkeepers</option>
+                    <option value="2">Defenders</option>
+                    <option value="3">Midfielders</option>
+                    <option value="4">Forwards</option>
+                </select>
+                <select id="teamFilter">
+                    <option value="">All Teams</option>
+                </select>
+                <select id="priceFilter">
+                    <option value="">All Prices</option>
+                    <option value="0-5">£0-5m</option>
+                    <option value="5-7">£5-7m</option>
+                    <option value="7-9">£7-9m</option>
+                    <option value="9-100">£9m+</option>
+                </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="availableOnly" checked />
+                    Available only
+                </label>
+            </div>
+
+            <div id="playerTableContainer" class="table-container">
+                <p class="placeholder">Enter your team ID on the Dashboard to load player data</p>
+            </div>
+        </div>
+
+        <!-- MY TEAM PAGE -->
+        <div id="myteam" class="page">
+            <div class="page-header">
+                <h2>My Team Analysis</h2>
+            </div>
+
+            <div id="myTeamContent" class="my-team-content">
+                <p class="placeholder">Enter your team ID on the Dashboard to analyze your team</p>
+            </div>
+
+            <div class="section transfer-section" style="display: none;" id="transferSection">
+                <h3>🔄 Transfer Suggestions</h3>
+                <div id="transferAnalysis"></div>
+            </div>
+
+            <div class="section captain-section" style="display: none;" id="captainSection">
+                <h3>⭐ Captain Selector</h3>
+                <div class="strategy-selector">
+                    <span class="strategy-label">Strategy:</span>
+                    <button class="strategy-btn active" data-strategy="SAFE">🛡️ Safe</button>
+                    <button class="strategy-btn" data-strategy="BALANCED">⚖️ Balanced</button>
+                    <button class="strategy-btn" data-strategy="AGGRESSIVE">🎯 Aggressive</button>
+                </div>
+                <div id="captainAnalysis"></div>
+            </div>
+        </div>
+
+        <!-- WILDCARD BUILDER PAGE -->
+        <div id="wildcard" class="page">
+            <div class="page-header">
+                <h2>Wildcard Builder</h2>
+                <button id="buildWildcardBtn" class="btn-primary">🃏 Build Optimal Team</button>
+            </div>
+            <div id="wildcardTeam" class="wildcard-team">
+                <p class="placeholder">Enter your team ID on Dashboard, then click "Build Optimal Team"</p>
+            </div>
+        </div>
     </div>
+
+    <footer class="app-footer">
+        <p>Data from Official FPL API • Updates every 5 minutes • Made by FPL nerds, for FPL nerds</p>
+    </footer>
 
     <script src="script.js"></script>
 </body>
