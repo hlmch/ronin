@@ -156,6 +156,9 @@ async function loadFPLData() {
         // Run transfer analysis if we have a team
         analyzeTransfers(bootstrapData, fixturesData, currentGW);
 
+        // Run captain analysis
+        analyzeCaptainOptions(bootstrapData, fixturesData, currentGW, currentCaptainStrategy);
+
         // Store data globally for wildcard builder
         window.fplData = {
             bootstrap: bootstrapData,
@@ -1192,6 +1195,318 @@ function buildWildcard() {
 
     const { bootstrap, fixtures, currentGW } = window.fplData;
     optimizeWildcard(bootstrap, fixtures, currentGW);
+}
+
+// ============================================================================
+// CAPTAIN SELECTOR - Step 5: Captain Analysis with Ownership
+// ============================================================================
+
+// Captain strategy weights
+const CAPTAIN_STRATEGIES = {
+    SAFE: {
+        expectedPoints: 0.50,
+        recentForm: 0.30,
+        fixture: 0.15,
+        differential: 0.00,
+        consistency: 0.05
+    },
+    BALANCED: {
+        expectedPoints: 0.35,
+        recentForm: 0.25,
+        fixture: 0.20,
+        differential: 0.10,
+        consistency: 0.10
+    },
+    AGGRESSIVE: {
+        expectedPoints: 0.30,
+        recentForm: 0.20,
+        fixture: 0.20,
+        differential: 0.25,
+        consistency: 0.05
+    }
+};
+
+// Current captain strategy (default: BALANCED)
+let currentCaptainStrategy = 'BALANCED';
+
+// Calculate captain score for a player
+function calculateCaptainScore(player, fixtures, currentGW, teams, strategy = 'BALANCED') {
+    const weights = CAPTAIN_STRATEGIES[strategy];
+
+    // Get xP for next gameweek only (captain is for 1 GW)
+    const xPResult = calculateExpectedPoints(player, fixtures, 1, currentGW, teams);
+    const xP = xPResult.total;
+
+    // Component 1: Expected Points (already includes fixture difficulty)
+    const xpScore = xP * 2; // Captain doubles points
+
+    // Component 2: Recent Form (last 4 gameweeks)
+    const form = getPlayerForm(player);
+    const formScore = form * 2; // Potential captain points from form
+
+    // Component 3: Next Fixture Quality
+    const nextFixture = getNextFixture(player, fixtures, currentGW);
+    const fixtureDifficulty = nextFixture ? nextFixture.difficulty : 3;
+    const fixtureBonus = (6 - fixtureDifficulty) * 4; // Invert FDR: easier = higher score
+
+    // Component 4: Differential Bonus (lower ownership = higher opportunity)
+    const ownership = parseFloat(player.selected_by_percent) || 50;
+    const differentialBonus = Math.max(0, 40 - ownership); // Max 40 bonus at 0% ownership
+
+    // Component 5: Consistency (lower variance = better)
+    const consistency = calculateConsistency(player);
+    const consistencyScore = consistency.score * 20; // 0-20 scale
+
+    // Calculate weighted total
+    const total =
+        (xpScore * weights.expectedPoints) +
+        (formScore * weights.recentForm) +
+        (fixtureBonus * weights.fixture) +
+        (differentialBonus * weights.differential) +
+        (consistencyScore * weights.consistency);
+
+    // Calculate confidence (0-100%)
+    const confidenceFactors = {
+        xP: xP > 8 ? 1 : xP / 8,
+        form: Math.min(form / 8, 1),
+        fixture: (6 - fixtureDifficulty) / 5,
+        consistency: consistency.score
+    };
+    const confidence = Object.values(confidenceFactors).reduce((a, b) => a + b, 0) / 4;
+
+    return {
+        total,
+        captainPoints: xpScore,
+        breakdown: {
+            xpScore,
+            formScore,
+            fixtureBonus,
+            differentialBonus,
+            consistencyScore
+        },
+        metrics: {
+            form,
+            fixture: nextFixture,
+            fixtureDifficulty,
+            ownership,
+            consistency: consistency.rating,
+            confidence: Math.round(confidence * 100)
+        },
+        xPComponents: xPResult
+    };
+}
+
+// Get next fixture for a player
+function getNextFixture(player, fixtures, currentGW) {
+    const teamId = player.team;
+
+    const nextFixtures = fixtures
+        .filter(f => !f.finished && f.event >= (currentGW?.id || 1))
+        .filter(f => f.team_h === teamId || f.team_a === teamId)
+        .sort((a, b) => a.event - b.event)
+        .slice(0, 1);
+
+    if (nextFixtures.length === 0) return null;
+
+    const fixture = nextFixtures[0];
+    const isHome = fixture.team_h === teamId;
+    const difficulty = isHome ? fixture.team_h_difficulty : fixture.team_a_difficulty;
+    const opponent = isHome ? fixture.team_a : fixture.team_h;
+
+    return {
+        ...fixture,
+        isHome,
+        difficulty,
+        opponent
+    };
+}
+
+// Calculate effective ownership (EO)
+function calculateEffectiveOwnership(player) {
+    const ownership = parseFloat(player.selected_by_percent) || 0;
+    // Assume captain% is roughly ownership / 3 for top players
+    const captaincy = ownership > 50 ? ownership / 3 : ownership / 5;
+    const eo = ownership + (captaincy * 2);
+
+    let risk = 'Differential';
+    if (eo > 100) risk = 'Template';
+    else if (eo > 50) risk = 'Popular';
+
+    return {
+        eo: eo.toFixed(1),
+        risk,
+        ownership,
+        captaincy
+    };
+}
+
+// Analyze captain options from current team
+function analyzeCaptainOptions(bootstrapData, fixtures, currentGW, strategy = 'BALANCED') {
+    const captainSection = document.getElementById('captainAnalysis');
+
+    if (!captainSection) {
+        console.log('Captain analysis section not found in DOM');
+        return;
+    }
+
+    try {
+        captainSection.innerHTML = '<p class="loading">Analyzing captain options...</p>';
+
+        const { elements, teams } = bootstrapData;
+        const currentTeam = getCurrentTeam(bootstrapData);
+
+        if (currentTeam.length === 0) {
+            captainSection.innerHTML = '<p class="placeholder">No team data available</p>';
+            return;
+        }
+
+        // Create team lookup
+        const teamLookup = {};
+        teams.forEach(team => {
+            teamLookup[team.id] = team.short_name;
+        });
+
+        // Calculate captain scores for all team players
+        const captainOptions = currentTeam.map(player => {
+            const score = calculateCaptainScore(player, fixtures, currentGW, teams, strategy);
+            const eo = calculateEffectiveOwnership(player);
+
+            return {
+                player,
+                score: score.total,
+                captainPoints: score.captainPoints,
+                breakdown: score.breakdown,
+                metrics: score.metrics,
+                xPComponents: score.xPComponents,
+                eo
+            };
+        });
+
+        // Sort by captain score
+        const topOptions = captainOptions
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5); // Top 5 captain picks
+
+        // Display captain analysis
+        displayCaptainAnalysis(topOptions, teamLookup, currentGW, strategy);
+
+    } catch (error) {
+        console.error('Error analyzing captains:', error);
+        captainSection.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+    }
+}
+
+// Display captain analysis results
+function displayCaptainAnalysis(options, teamLookup, currentGW, strategy) {
+    const captainSection = document.getElementById('captainAnalysis');
+
+    if (options.length === 0) {
+        captainSection.innerHTML = '<p class="placeholder">No captain options available</p>';
+        return;
+    }
+
+    let html = '<div class="captain-results">';
+
+    // Header with strategy selector
+    html += '<div class="captain-header">';
+    html += `<h3>CAPTAIN ANALYSIS - GW${currentGW?.id || '?'}</h3>`;
+    html += '<div class="strategy-selector">';
+    html += '<span class="strategy-label">Strategy:</span>';
+    ['SAFE', 'BALANCED', 'AGGRESSIVE'].forEach(strat => {
+        const active = strat === strategy ? 'active' : '';
+        html += `<button class="strategy-btn ${active}" onclick="changeCaptainStrategy('${strat}')">${strat}</button>`;
+    });
+    html += '</div>';
+    html += '</div>';
+
+    // Captain options
+    html += '<div class="captain-options">';
+
+    options.forEach((option, index) => {
+        const player = option.player;
+        const teamCode = teamLookup[player.team];
+        const price = (player.now_cost / 10).toFixed(1);
+        const fixture = option.metrics.fixture;
+
+        // Badges
+        const isRecommended = index === 0;
+        const isDifferential = option.eo.ownership < 20;
+
+        html += '<div class="captain-option">';
+
+        // Rank and badges
+        html += '<div class="captain-rank">';
+        html += `<span class="rank-number">${index + 1}.</span>`;
+        if (isRecommended) html += ' <span class="badge-recommended">⭐ RECOMMENDED</span>';
+        if (isDifferential) html += ' <span class="badge-differential">💎 DIFFERENTIAL</span>';
+        html += '</div>';
+
+        // Player info
+        html += '<div class="captain-player-info">';
+        html += `<div class="captain-player-name">${player.web_name} (${teamCode}) - £${price}m</div>`;
+        if (fixture) {
+            const oppTeam = teamLookup[fixture.opponent];
+            const venue = fixture.isHome ? 'H' : 'A';
+            html += `<div class="captain-fixture">vs ${oppTeam} (${venue}) - FDR ${fixture.difficulty}</div>`;
+        }
+        html += '</div>';
+
+        // Main stats
+        html += '<div class="captain-stats">';
+        html += `<div class="captain-stat">`;
+        html += `<div class="stat-label">Captain Points</div>`;
+        html += `<div class="stat-value">${option.captainPoints.toFixed(1)}</div>`;
+        html += `<div class="stat-detail">(2× ${(option.captainPoints / 2).toFixed(1)} xP)</div>`;
+        html += `</div>`;
+        html += `<div class="captain-stat">`;
+        html += `<div class="stat-label">Form</div>`;
+        html += `<div class="stat-value">${option.metrics.form.toFixed(1)}</div>`;
+        html += `<div class="stat-detail">avg (last 4 GW)</div>`;
+        html += `</div>`;
+        html += `<div class="captain-stat">`;
+        html += `<div class="stat-label">Ownership</div>`;
+        html += `<div class="stat-value">${option.eo.ownership.toFixed(1)}%</div>`;
+        html += `<div class="stat-detail">${option.eo.risk}</div>`;
+        html += `</div>`;
+        html += `<div class="captain-stat">`;
+        html += `<div class="stat-label">Confidence</div>`;
+        html += `<div class="stat-value">${option.metrics.confidence}%</div>`;
+        html += `<div class="confidence-bar">`;
+        const barWidth = option.metrics.confidence;
+        const barColor = barWidth > 70 ? '#38a169' : barWidth > 50 ? '#d69e2e' : '#e53e3e';
+        html += `<div class="confidence-fill" style="width: ${barWidth}%; background: ${barColor}"></div>`;
+        html += `</div>`;
+        html += `</div>`;
+        html += '</div>';
+
+        html += '</div>'; // End captain-option
+    });
+
+    html += '</div>'; // End captain-options
+
+    // Strategy explanation
+    html += '<div class="strategy-explanation">';
+    if (strategy === 'SAFE') {
+        html += '<p>📊 Safe Strategy: Prioritizes high ownership, consistent performers. Best for protecting rank.</p>';
+    } else if (strategy === 'BALANCED') {
+        html += '<p>⚖️ Balanced Strategy: Mix of xP, form, and fixtures with some differential consideration.</p>';
+    } else {
+        html += '<p>🚀 Aggressive Strategy: Chases rank gains with differential captains. Higher risk, higher reward.</p>';
+    }
+    html += '</div>';
+
+    html += '</div>'; // End captain-results
+
+    captainSection.innerHTML = html;
+}
+
+// Change captain strategy
+function changeCaptainStrategy(strategy) {
+    currentCaptainStrategy = strategy;
+    if (window.fplData) {
+        const { bootstrap, fixtures, currentGW } = window.fplData;
+        analyzeCaptainOptions(bootstrap, fixtures, currentGW, strategy);
+    }
 }
 
 // Event listeners

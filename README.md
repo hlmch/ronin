@@ -1,6 +1,6 @@
-# FPL Optimizer - Step 4: Team Optimization & Wildcard Builder
+# FPL Optimizer - Step 5: Captain Selector Algorithm
 
-A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model, transfer analysis, and knapsack-based team optimization based on Joshua Bull's mathematical framework.
+A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model, transfer analysis, knapsack-based team optimization, and intelligent captain selection based on Joshua Bull's mathematical framework.
 
 ## Features
 
@@ -40,6 +40,18 @@ A Fantasy Premier League optimizer with comprehensive Expected Points (xP) model
 - **Formation Visualization**: Green pitch with player cards
 - **Bench Selection**: Automatically picks budget bench
 - **Team Distribution**: Shows which teams are represented
+
+### Step 5: Captain Selector ✅
+- **Strategy-Based Selection**: Three strategies (Safe, Balanced, Aggressive)
+- **Multi-Factor Scoring**: xP, form, fixture, ownership, consistency
+- **Ownership Analysis**: Template picks vs differentials
+- **Effective Ownership**: EO = ownership% + (captaincy% × 2)
+- **Confidence Bars**: Visual confidence indicator for each option
+- **Top 5 Recommendations**: Ranked captain picks from your team
+- **Fixture Analysis**: Next opponent and difficulty rating
+- **Strategy Toggle**: Switch between risk profiles on the fly
+- **Badge System**: Recommended/Differential/Template indicators
+- **Form vs Fixture Balance**: Weighted algorithm based on strategy
 
 ## API Endpoints
 
@@ -168,6 +180,59 @@ Multi-factor confidence rating (0-100%):
 - **Consistency** (25%): Form variance vs points per game
 - **Data Quality** (20%): xG/xA data availability
 
+## Captain Selection Algorithm
+
+### Strategy-Based Scoring System:
+
+```javascript
+// Three strategies with different weight profiles
+SAFE:       xP=50%, Form=30%, Fixture=15%, Differential=0%,  Consistency=5%
+BALANCED:   xP=35%, Form=25%, Fixture=20%, Differential=10%, Consistency=10%
+AGGRESSIVE: xP=30%, Form=20%, Fixture=20%, Differential=25%, Consistency=5%
+```
+
+### Scoring Components:
+
+#### 1. Expected Points (xP × 2)
+- Captain doubles all points
+- Uses enhanced xP model from Step 3
+- Higher weight in SAFE strategy
+
+#### 2. Recent Form
+- Last 4 gameweeks average
+- Weighted by minutes played
+- Critical for identifying hot streaks
+
+#### 3. Fixture Quality
+- Next opponent's Fixture Difficulty Rating (FDR)
+- Bonus for easy fixtures: FDR 1 = +3.0, FDR 2 = +1.5
+- Penalty for hard fixtures: FDR 4 = -1.5, FDR 5 = -3.0
+
+#### 4. Differential Bonus
+- Rewards low ownership for AGGRESSIVE strategy
+- **High differential**: <15% ownership (+3.0 bonus)
+- **Medium differential**: 15-35% ownership (+1.5 bonus)
+- **Template pick**: >35% ownership (no bonus)
+
+#### 5. Consistency Score
+- Variance between best and worst recent performances
+- High consistency = more predictable returns
+- Weighted heavily in BALANCED strategy
+
+### Effective Ownership (EO):
+```javascript
+EO = ownership% + (captaincy% × 2)
+```
+
+**Example**:
+- Salah: 65% owned, 45% captaincy → EO = 65 + (45 × 2) = 155%
+- Haaland: 75% owned, 35% captaincy → EO = 75 + (35 × 2) = 145%
+
+### Badge System:
+- **Recommended** (⭐): Top scoring option for selected strategy
+- **Differential** (💎): <15% ownership
+- **Template** (📋): >60% ownership
+
 ## Team Optimization Algorithm
 
 ### Knapsack Problem with Constraints:
@@ -226,7 +291,15 @@ Higher ratio = better value for money
    - Player cards show name, team, price, xP, confidence
    - Bench players displayed separately
    - Team distribution shows squad balance
-6. **Cache Management**:
+6. **Captain Selector**: Choose your strategy
+   - **🛡️ Safe**: Follow the template (high ownership, proven picks)
+   - **⚖️ Balanced**: Mix template + differentials (default)
+   - **🎯 Aggressive**: Hunt differentials (low ownership, high risk)
+   - Top 5 ranked options with captain points (xP × 2)
+   - Ownership %, form, fixture analysis
+   - Confidence bars show prediction reliability
+   - Badges identify recommended/differential/template picks
+7. **Cache Management**:
    - Data cached automatically (1hr static, 5min live)
    - Click "Refresh Data" to update
    - Click "Clear Cache" to reset
@@ -287,13 +360,13 @@ BENCH: Turner (4.0) | Lewis (4.5) | Dibling (4.5) | Archer (4.5)
 Team Distribution: ARS: 3 | LIV: 2 | CHE: 1 | NEW: 1 | ...
 ```
 
-## Next Steps (Step 5+)
+## Next Steps (Step 6+)
 
 - ✅ ~~Core API setup and caching~~
 - ✅ ~~Transfer optimizer with underperformer removal~~
 - ✅ ~~Enhanced Expected Points model with component breakdown~~
 - ✅ ~~Team optimization with knapsack solver~~
-- 🔲 Captain selection algorithm (xP × 2 with EO consideration)
+- ✅ ~~Captain selection algorithm with strategy-based scoring~~
 - 🔲 Chip strategy advisor (Triple Captain, Bench Boost, Free Hit timing)
 - 🔲 Interactive team editor (lock players, set constraints)
 - 🔲 Historical performance backtesting (validate xP model)
