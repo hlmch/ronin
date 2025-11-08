@@ -280,8 +280,7 @@ input::placeholder {
 
 /* Sections - Holocron Panels */
 .section,
-.my-team-content,
-.team-input-section {
+.my-team-content {
     background: var(--panel);
     border: 2px solid var(--border);
     border-radius: 12px;
@@ -289,6 +288,343 @@ input::placeholder {
     margin-bottom: 30px;
     box-shadow: var(--shadow);
     backdrop-filter: blur(10px);
+}
+
+/* ===================================================================================================
+   COMMAND TERMINAL - Team Loader
+   =================================================================================================== */
+
+.command-terminal {
+    background: linear-gradient(135deg, rgba(10, 10, 20, 0.95) 0%, rgba(5, 5, 10, 0.98) 100%);
+    border: 3px solid var(--sw-yellow);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 40px;
+    box-shadow:
+        0 0 30px rgba(255, 232, 31, 0.4),
+        0 8px 32px rgba(0, 0, 0, 0.9),
+        inset 0 1px 0 rgba(255, 232, 31, 0.2);
+    position: relative;
+}
+
+.command-terminal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent,
+        var(--sw-yellow) 20%,
+        var(--sw-yellow) 80%,
+        transparent);
+    opacity: 0.6;
+}
+
+.terminal-header {
+    background: linear-gradient(180deg, rgba(20, 20, 30, 0.9) 0%, rgba(15, 15, 25, 0.95) 100%);
+    padding: 20px 28px;
+    border-bottom: 2px solid rgba(255, 232, 31, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.terminal-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: var(--sw-yellow);
+    text-shadow: 0 0 10px rgba(255, 232, 31, 0.6);
+}
+
+.terminal-icon {
+    font-size: 20px;
+    animation: glow 2s ease-in-out infinite;
+}
+
+.terminal-status {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--sw-blue);
+    padding: 6px 14px;
+    background: rgba(75, 163, 195, 0.15);
+    border: 1px solid rgba(75, 163, 195, 0.4);
+    border-radius: 20px;
+    text-shadow: 0 0 8px rgba(75, 163, 195, 0.5);
+}
+
+.terminal-body {
+    padding: 36px 32px;
+}
+
+.terminal-instruction {
+    margin-bottom: 32px;
+}
+
+.terminal-prompt {
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--sw-yellow);
+    margin-bottom: 16px;
+    text-shadow: 0 0 10px rgba(255, 232, 31, 0.5);
+}
+
+.terminal-help {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+}
+
+.terminal-example {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 232, 31, 0.2);
+    border-left: 4px solid var(--sw-yellow);
+    padding: 14px 18px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    margin-top: 8px;
+}
+
+.terminal-example code {
+    color: var(--sw-blue);
+    font-size: 14px;
+    letter-spacing: 0.5px;
+}
+
+.id-highlight {
+    color: var(--sw-yellow);
+    font-weight: 900;
+    background: rgba(255, 232, 31, 0.15);
+    padding: 2px 8px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(255, 232, 31, 0.3);
+}
+
+.terminal-input-zone {
+    margin-bottom: 32px;
+}
+
+.input-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--sw-yellow);
+    margin-bottom: 16px;
+    text-shadow: 0 0 8px rgba(255, 232, 31, 0.4);
+}
+
+.label-icon {
+    font-size: 18px;
+}
+
+.terminal-input-group {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid rgba(255, 232, 31, 0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+}
+
+.terminal-input-group:focus-within {
+    border-color: var(--sw-yellow);
+    box-shadow: 0 0 20px rgba(255, 232, 31, 0.4);
+}
+
+.input-prefix {
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    background: rgba(255, 232, 31, 0.1);
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: var(--sw-yellow);
+    border-right: 2px solid rgba(255, 232, 31, 0.3);
+    font-family: 'Courier New', monospace;
+}
+
+.terminal-input {
+    flex: 1;
+    padding: 18px 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.terminal-input:focus {
+    outline: none;
+}
+
+.terminal-input::placeholder {
+    color: rgba(255, 232, 31, 0.3);
+    font-weight: 400;
+}
+
+.terminal-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 32px;
+    background: linear-gradient(135deg, var(--sw-yellow) 0%, var(--sw-gold) 100%);
+    border: none;
+    color: var(--space-dark);
+    font-weight: 900;
+    font-size: 16px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.terminal-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.terminal-btn:hover::before {
+    left: 100%;
+}
+
+.terminal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(255, 232, 31, 0.6);
+}
+
+.terminal-btn:active {
+    transform: translateY(0);
+}
+
+.btn-icon {
+    font-size: 18px;
+}
+
+.terminal-data {
+    margin-top: 40px;
+    padding-top: 32px;
+    border-top: 2px solid rgba(255, 232, 31, 0.3);
+    animation: slideDown 0.5s ease-out;
+}
+
+.data-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding: 16px 20px;
+    background: rgba(0, 255, 0, 0.1);
+    border: 2px solid rgba(0, 255, 0, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+}
+
+.data-icon {
+    font-size: 24px;
+    color: var(--sw-green);
+    text-shadow: 0 0 10px var(--sw-green);
+}
+
+.data-title {
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--sw-green);
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+.commander-info {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 24px;
+    background: rgba(255, 232, 31, 0.05);
+    border-radius: 10px;
+}
+
+.commander-name {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: var(--sw-yellow);
+    margin-bottom: 8px;
+    text-shadow: 0 0 15px rgba(255, 232, 31, 0.6);
+}
+
+.commander-title {
+    font-size: 16px;
+    color: var(--sw-blue);
+    letter-spacing: 1px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.stat-pod {
+    background: rgba(20, 20, 30, 0.8);
+    border: 2px solid rgba(75, 163, 195, 0.3);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s;
+}
+
+.stat-pod:hover {
+    border-color: var(--sw-yellow);
+    box-shadow: 0 0 20px rgba(255, 232, 31, 0.3);
+    transform: translateY(-4px);
+}
+
+.stat-icon {
+    font-size: 32px;
+    opacity: 0.9;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--sw-yellow);
+    letter-spacing: 1px;
+    text-shadow: 0 0 10px rgba(255, 232, 31, 0.3);
 }
 
 .section h3 {
@@ -926,28 +1262,6 @@ input::placeholder {
     flex: 1;
 }
 
-.team-input-section {
-    text-align: center;
-    max-width: 650px;
-    margin: 0 auto;
-}
-
-.team-input-section h2 {
-    font-size: 36px;
-    font-weight: 900;
-    margin-bottom: 16px;
-    color: var(--sw-yellow);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    text-shadow: 0 0 20px rgba(255, 232, 31, 0.6);
-}
-
-.team-input-section p {
-    font-size: 16px;
-    color: var(--text-secondary);
-    margin-bottom: 28px;
-    line-height: 1.7;
-}
 
 /* Misc */
 .placeholder {
@@ -1067,10 +1381,85 @@ select:focus-visible {
     }
 
     .section,
-    .my-team-content,
-    .team-input-section {
+    .my-team-content {
         padding: 24px;
         margin-bottom: 24px;
+    }
+
+    /* Terminal Mobile Styles */
+    .command-terminal {
+        margin-bottom: 28px;
+    }
+
+    .terminal-header {
+        padding: 16px 18px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .terminal-title {
+        font-size: 14px;
+        letter-spacing: 2px;
+    }
+
+    .terminal-status {
+        font-size: 10px;
+        padding: 5px 12px;
+    }
+
+    .terminal-body {
+        padding: 24px 20px;
+    }
+
+    .terminal-prompt {
+        font-size: 15px;
+    }
+
+    .terminal-example code {
+        font-size: 12px;
+    }
+
+    .input-label {
+        font-size: 12px;
+    }
+
+    .terminal-input-group {
+        flex-direction: column;
+    }
+
+    .input-prefix {
+        padding: 12px 16px;
+        border-right: none;
+        border-bottom: 2px solid rgba(255, 232, 31, 0.3);
+        justify-content: center;
+    }
+
+    .terminal-input {
+        padding: 16px;
+        font-size: 16px;
+    }
+
+    .terminal-btn {
+        padding: 16px 24px;
+        justify-content: center;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .stat-pod {
+        padding: 16px;
+    }
+
+    .commander-name {
+        font-size: 22px;
+    }
+
+    .commander-title {
+        font-size: 14px;
     }
 
     .team-pitch {
@@ -1161,5 +1550,26 @@ select:focus-visible {
     .pitch-player {
         min-width: 70px;
         max-width: 85px;
+    }
+
+    /* Terminal Extra Small Screens */
+    .terminal-body {
+        padding: 20px 16px;
+    }
+
+    .terminal-title {
+        font-size: 12px;
+    }
+
+    .terminal-prompt {
+        font-size: 14px;
+    }
+
+    .stat-value {
+        font-size: 18px;
+    }
+
+    .stat-icon {
+        font-size: 28px;
     }
 }

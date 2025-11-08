@@ -22,43 +22,85 @@
 
         <!-- DASHBOARD PAGE -->
         <div id="dashboard" class="page active">
-            <div class="team-input-section">
-                <h2>Enter Your Team ID</h2>
-                <p class="help-text">Find your Team ID in your FPL URL:</p>
-                <p class="help-example">fantasy.premierleague.com/entry/<strong class="highlight">123456</strong>/event/15</p>
-
-                <div class="input-group">
-                    <input type="number" id="teamIdInput" placeholder="e.g., 123456" />
-                    <button id="loadTeamBtn" class="btn-primary">Load My Team</button>
+            <div class="command-terminal">
+                <div class="terminal-header">
+                    <div class="terminal-title">
+                        <span class="terminal-icon">◉</span>
+                        <span>GALACTIC COMMAND TERMINAL</span>
+                    </div>
+                    <div class="terminal-status" id="terminalStatus">AWAITING INPUT</div>
                 </div>
 
-                <div id="teamInfo" class="team-info" style="display: none;">
-                    <div class="info-card">
-                        <h3 id="teamName">-</h3>
-                        <div class="info-grid">
-                            <div class="info-item">
-                                <span class="info-label">Manager:</span>
-                                <span class="info-value" id="managerName">-</span>
+                <div class="terminal-body">
+                    <div class="terminal-instruction">
+                        <p class="terminal-prompt">▶ INITIATE TEAM DATA LINK</p>
+                        <p class="terminal-help">LOCATE YOUR TEAM ID IN FPL TRANSMISSION:</p>
+                        <div class="terminal-example">
+                            <code>fantasy.premierleague.com/entry/<span class="id-highlight">123456</span>/event/15</code>
+                        </div>
+                    </div>
+
+                    <div class="terminal-input-zone">
+                        <label for="teamIdInput" class="input-label">
+                            <span class="label-icon">🎯</span>
+                            ENTER TEAM IDENTIFICATION CODE
+                        </label>
+                        <div class="terminal-input-group">
+                            <div class="input-prefix">ID:</div>
+                            <input type="text" id="teamIdInput" placeholder="123456" class="terminal-input" />
+                            <button id="loadTeamBtn" class="terminal-btn">
+                                <span class="btn-icon">⚡</span>
+                                <span class="btn-text">ENGAGE</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="teamInfo" class="terminal-data" style="display: none;">
+                        <div class="data-header">
+                            <span class="data-icon">✓</span>
+                            <span class="data-title">CONNECTION ESTABLISHED</span>
+                        </div>
+
+                        <div class="commander-info">
+                            <h3 id="teamName" class="commander-name">-</h3>
+                            <p id="managerName" class="commander-title">-</p>
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-pod">
+                                <div class="stat-icon">🏆</div>
+                                <div class="stat-content">
+                                    <div class="stat-label">GALACTIC RANK</div>
+                                    <div class="stat-value" id="overallRank">-</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Overall Rank:</span>
-                                <span class="info-value" id="overallRank">-</span>
+                            <div class="stat-pod">
+                                <div class="stat-icon">⭐</div>
+                                <div class="stat-content">
+                                    <div class="stat-label">TOTAL POINTS</div>
+                                    <div class="stat-value" id="totalPoints">-</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Total Points:</span>
-                                <span class="info-value" id="totalPoints">-</span>
+                            <div class="stat-pod">
+                                <div class="stat-icon">💎</div>
+                                <div class="stat-content">
+                                    <div class="stat-label">FLEET VALUE</div>
+                                    <div class="stat-value" id="teamValue">-</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Team Value:</span>
-                                <span class="info-value" id="teamValue">-</span>
+                            <div class="stat-pod">
+                                <div class="stat-icon">💰</div>
+                                <div class="stat-content">
+                                    <div class="stat-label">RESERVES</div>
+                                    <div class="stat-value" id="bankValue">-</div>
+                                </div>
                             </div>
-                            <div class="info-item">
-                                <span class="info-label">Bank:</span>
-                                <span class="info-value" id="bankValue">-</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Free Transfers:</span>
-                                <span class="info-value" id="freeTransfers">-</span>
+                            <div class="stat-pod">
+                                <div class="stat-icon">🔄</div>
+                                <div class="stat-content">
+                                    <div class="stat-label">FREE TRANSFERS</div>
+                                    <div class="stat-value" id="freeTransfers">-</div>
+                                </div>
                             </div>
                         </div>
                     </div>
