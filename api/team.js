@@ -22,7 +22,20 @@ export default async function handler(req, res) {
     const response = await fetch(`https://fantasy.premierleague.com/api/entry/${teamId}/`);
 
     if (!response.ok) {
-      throw new Error(`FPL API responded with status: ${response.status}`);
+      // Pass through the original status code from FPL API
+      const status = response.status;
+      let errorMessage = `FPL API responded with status: ${status}`;
+
+      if (status === 404) {
+        errorMessage = `Team ID ${teamId} not found. Please check your Team ID is correct.`;
+      } else if (status === 503) {
+        errorMessage = 'FPL API is temporarily unavailable. Please try again later.';
+      }
+
+      return res.status(status).json({
+        error: 'Failed to fetch team data',
+        message: errorMessage
+      });
     }
 
     const data = await response.json();
@@ -35,7 +48,7 @@ export default async function handler(req, res) {
     console.error('Error fetching team data:', error);
     return res.status(500).json({
       error: 'Failed to fetch team data',
-      message: error.message
+      message: error.message || 'Network error - unable to connect to FPL API'
     });
   }
 }
